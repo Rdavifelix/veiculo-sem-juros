@@ -14,7 +14,7 @@ export function Cabecalho({ usuario, carteira }: { usuario?: Sessao | null; cart
           </span>
         </Link>
 
-        <nav className="ml-auto flex items-center gap-5 text-sm">
+        <nav className="ml-auto flex items-center gap-3 text-sm sm:gap-5">
           {usuario ? (
             <>
               <Link href="/busca" className="hidden hover:text-black sm:inline">Busca</Link>
@@ -39,6 +39,13 @@ export function Cabecalho({ usuario, carteira }: { usuario?: Sessao | null; cart
           )}
         </nav>
       </div>
+      {usuario && (
+        <nav className="mx-auto flex max-w-[1200px] gap-5 px-4 pb-2 text-sm sm:hidden" aria-label="Seções">
+          <Link href="/busca" className="font-semibold">Busca</Link>
+          <Link href="/desbloqueados" className="font-semibold">Desbloqueados</Link>
+          <span className="ml-auto text-neutral-700">Olá, {usuario.nome.split(" ")[0]}</span>
+        </nav>
+      )}
     </header>
   );
 }
