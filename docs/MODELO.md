@@ -63,14 +63,19 @@ notifications       (user_id, tipo, payload, lida_em)
 ```
 Regras no banco: débito de crédito por RPC transacional (`gastar_credito`), unlock idempotente, RLS por `user_id`.
 
-## Fora do site modelo que precisamos decidir
-- **Fonte dos leilões**: raspagem própria dos leiloeiros (o modelo tem 31 mil) vs. parceria/API. É o maior esforço do projeto.
-- **Venda do acesso**: o modelo não tem cadastro público; o acesso vem do funil (webinário/checkout). Decidir se teremos cadastro aberto.
-- Quem produz as **análises** (manual pela equipe, IA, híbrido).
-- Gateway de pagamento dos créditos (Asaas/Assiny já conhecidos da XPN).
+## Decisões fora do site modelo (26/10/2026)
+- **Fonte dos leilões**: **raspagem própria**, começando pelas plataformas white-label (Suporte Leilões, Leilotech,
+  Grupo Lance) e pelos marketplaces com API JSON (Superbid, Sodré Santoro). Levantamento, mapa de fontes e
+  protótipo em `docs/FONTES.md` e `scripts/coleta/`. Cadastro manual só como complemento.
+- **Venda do acesso**: **vendida por fora** (funil/webinário/checkout), como no modelo. Sem cadastro público;
+  a conta é criada pelo backoffice após a compra (convite por e-mail / magic link).
+- **Análises**: **produzidas por IA** a partir do edital/descrição coletados (`auctions.raw`, `descricao`),
+  com extração estruturada (placa mascarada, processo, vara, débitos, condições de parcelamento) e veredito.
+  Revisão humana opcional antes de liberar.
+- Gateway de pagamento dos créditos: em aberto (Asaas/Assiny já conhecidos da XPN).
 
 ## Fases sugeridas
 1. **Esqueleto + auth + onboarding gate + busca sobre uma base semente** (import manual de leilões) + créditos/desbloqueio.
 2. Oportunidade do dia (perfil + recomendação + análise).
 3. Área de membros, fórum, reportar problema.
-4. Coleta automática de leilões.
+4. Coleta automática de leilões (protótipo pronto em `scripts/coleta/`; falta tabela `fontes`, job agendado e mais parsers).

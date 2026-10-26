@@ -14,6 +14,11 @@ deploy com o `crmxpn` (CRM XPN). Nada daquele repositório vale aqui, exceto as 
 - 26/10/2026: esqueleto criado (typecheck + build verdes). **Site modelo = BuscaAii** (agregador de
   leilões + créditos + análises), mapeado tela a tela em `docs/MODELO.md` — é a spec. Nada do domínio
   implementado ainda.
+- 26/10/2026: decidido **raspagem própria** como fonte dos leilões (`docs/FONTES.md`): o BuscaAii agrega
+  centenas de leiloeiros pequenos que usam 3–4 plataformas white-label (Suporte Leilões, Leilotech, Grupo
+  Lance) + marketplaces com API JSON (Superbid, Sodré Santoro). Protótipo em `scripts/coleta/` (Node puro,
+  `node scripts/coleta/index.mjs --fonte=…`), 4 coletores validados. Decididos também: **acesso vendido por
+  fora** (sem cadastro público) e **análises por IA**.
 - Projeto Supabase: **ainda não criado**. Criar um projeto próprio (não o `gaeimhrftedqdkjkpyyr` do CRM).
 - Projeto Vercel: ainda não conectado.
 
@@ -25,6 +30,12 @@ deploy com o `crmxpn` (CRM XPN). Nada daquele repositório vale aqui, exceto as 
   prorrogação) **no banco** (RPC/trigger), nunca só no cliente.
 - Verificação antes de push: `npm run typecheck && npm run lint && npm run build`.
 - Commits em português, pequenos, descrevendo o porquê.
+
+## Coleta (scripts/coleta)
+- Coletores são `.mjs` sem dependências; `sodresantoro` precisa de `playwright` (WAF). 1 req/s por host, UA
+  identificável, só páginas públicas. Formato de saída = tabela `auctions`. Não usar a base do BuscaAii como fonte.
+- Superbid: a API pública não filtra "encerramento futuro"; filtrar `endDateTime` no cliente. Leilotech: fotos e
+  praças só via JS (pendente). Suporte Leilões tem duas versões (clássica Symfony e nova Next.js; só a clássica tem parser).
 
 ## Como verificar
 - `npm run typecheck` checa de verdade (tsconfig único, sem `files: []`).
