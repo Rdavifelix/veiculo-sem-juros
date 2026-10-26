@@ -143,8 +143,8 @@ export default async function PaginaAnalise({ params, searchParams }: { params: 
                   <>
                     <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-neutral-500">Anúncios encontrados</p>
                     <ul className="mt-1 space-y-1 text-sm">
-                      {r.valores.mercado_fontes.map((f) => (
-                        <li key={f.url} className="flex justify-between gap-3">
+                      {r.valores.mercado_fontes.map((f, i) => (
+                        <li key={`${i}-${f.url}`} className="flex justify-between gap-3">
                           <a href={f.url} target="_blank" rel="noopener noreferrer" className="min-w-0 truncate text-[var(--azul)]">{f.titulo}</a>
                           <span className="shrink-0 font-medium">{r$(f.preco)}</span>
                         </li>
