@@ -79,7 +79,7 @@ export function paraVitrine(l: Leilao): LeilaoVitrine {
     valor,
     valorDe,
     descontoPct,
-    parcelavel: l.tipo === "judicial",
+    parcelavel: l.tipo === "judicial" && l.raw.parcelamento_vedado !== true,
     praca1: (l.raw.praca_1 as string | undefined) ?? null,
     praca2: (l.raw.praca_2 as string | undefined) ?? null,
   };

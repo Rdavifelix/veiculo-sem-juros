@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import type { Leilao, TipoLeilao } from "./tipos";
+import { parcelamentoVedado } from "./parcelamento";
 
 /** Colunas da view pública `auctions_vitrine` que a vitrine usa (sem `fonte_url`; `extras` é o raw podado). */
 const COLUNAS =
@@ -83,6 +84,8 @@ export async function carregarVitrine(): Promise<Leilao[]> {
         lances: x.lances ?? null,
         praca_1: x.praca_1 ?? null,
         praca_2: x.praca_2 ?? null,
+        // Judicial não significa parcelável: alienação antecipada criminal (art. 144-A CPP) e editais "à vista" não parcelam.
+        parcelamento_vedado: parcelamentoVedado(r.descricao, x.condicoes as string | undefined, x.autor as string | undefined, x.leilao as string | undefined),
         sinistro: r.sinistro?.tipo ?? (x.sinistro as string | undefined) ?? null,
       },
     };

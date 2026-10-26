@@ -2,6 +2,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { LeilaoVitrine } from "./tipos";
 import { paraVitrine } from "./repositorio";
+import { parcelamentoVedado } from "./parcelamento";
 import type { Leilao } from "./tipos";
 
 export interface Documento {
@@ -60,7 +61,11 @@ export async function detalheLeilao(id: string): Promise<DetalheLeilao | null> {
     lance_atual: num(r.lance_atual),
     encerra_em: (r.encerra_em as string | null) ?? null,
     fotos: (r.fotos as string[] | null) ?? [],
-    raw: { ...extras, sinistro: (r.sinistro as { tipo?: string } | null)?.tipo ?? extras.sinistro ?? null },
+    raw: {
+      ...extras,
+      sinistro: (r.sinistro as { tipo?: string } | null)?.tipo ?? extras.sinistro ?? null,
+      parcelamento_vedado: parcelamentoVedado(r.descricao as string | null, extras.condicoes as string | undefined, extras.autor as string | undefined, extras.leilao as string | undefined),
+    },
   };
   const vitrine = paraVitrine(base);
   const documentos = Array.isArray(extras.documentos)

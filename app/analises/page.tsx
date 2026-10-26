@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Cabecalho } from "@/components/Cabecalho";
@@ -70,6 +71,13 @@ export default async function Analises() {
                 const r = a.resultado as { veredito?: string; lance_maximo?: { valor?: number | null } } | null;
                 return (
                   <li key={a.id as string} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+                    <Link href={a.status === "disponivel" ? `/analises/${a.id}` : `/leilao/${a.auction_id}`} className="relative h-24 w-full shrink-0 overflow-hidden rounded-sm bg-neutral-100 sm:h-20 sm:w-28">
+                      {a.leilao?.fotos[0] ? (
+                        <Image src={a.leilao.fotos[0]} alt="" fill sizes="112px" className="object-cover" unoptimized />
+                      ) : (
+                        <span className="grid h-full place-items-center text-[10px] text-neutral-400">sem foto</span>
+                      )}
+                    </Link>
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium">{a.leilao?.titulo ?? "Leilão removido"}</p>
                       <p className="text-xs text-neutral-500">

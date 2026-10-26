@@ -179,7 +179,12 @@ export default async function FichaLeilao({ params, searchParams }: { params: Pr
 
             <section className="rounded-md bg-white p-4 shadow-sm sm:p-5">
               <h2 className="text-base font-semibold">Pagamento</h2>
-              {l.parcelavel ? (
+              {l.tipo === "judicial" && !l.parcelavel ? (
+                <ul className="mt-2 space-y-1 text-sm text-neutral-700">
+                  <li>⚠️ Leilão judicial <strong>sem parcelamento</strong>: o edital exige pagamento à vista (alienação antecipada criminal ou regra do juízo)</li>
+                  <li className="text-xs text-neutral-500">Leia as condições de venda abaixo e confirme no edital.</li>
+                </ul>
+              ) : l.parcelavel ? (
                 <ul className="mt-2 space-y-1 text-sm text-neutral-700">
                   <li>✅ Leilão judicial: admite parcelamento</li>
                   <li>Entrada de <strong>25%</strong> e saldo em até <strong>30 parcelas</strong></li>

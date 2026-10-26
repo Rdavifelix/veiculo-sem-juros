@@ -5,7 +5,7 @@ import { sair } from "@/app/login/actions";
 
 export function Cabecalho({ usuario, carteira }: { usuario?: Sessao | null; carteira?: Carteira | null }) {
   return (
-    <header className="bg-[var(--amarelo)] text-[var(--texto)]">
+    <header className="bg-[var(--amarelo)] text-[var(--texto)] print:hidden">
       <div className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2">
         <Link href={usuario ? "/busca" : "/"} className="flex items-center gap-2" aria-label="Veículo Sem Juros — início">
           <span className="grid h-9 w-9 place-items-center rounded-full bg-[var(--azul)] text-lg font-black text-white">V</span>

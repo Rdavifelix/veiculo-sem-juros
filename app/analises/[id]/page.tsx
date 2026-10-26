@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Cabecalho } from "@/components/Cabecalho";
@@ -10,6 +11,7 @@ import type { Analise } from "@/lib/ia/analise";
 import { buscarPorId } from "@/lib/leiloes/repositorio";
 import { createClient } from "@/lib/supabase/server";
 import { reprocessarAnalise } from "../actions";
+import { BotaoImprimir } from "../BotaoImprimir";
 
 export const metadata: Metadata = { title: "Análise do leilão", robots: { index: false } };
 export const maxDuration = 300;
@@ -22,6 +24,7 @@ const VEREDITO: Record<string, { rotulo: string; cor: string }> = {
 const GRAVIDADE: Record<string, string> = { alta: "bg-red-50 text-red-800 border-red-200", media: "bg-amber-50 text-amber-800 border-amber-200", baixa: "bg-neutral-50 text-neutral-700 border-neutral-200" };
 const PROB: Record<string, string> = { alta: "alta", media: "média", baixa: "baixa" };
 const r$ = (v: number | null | undefined) => (v == null ? "não informado" : formatarReais(v));
+const sinal = (v: number | null | undefined) => (v == null ? "não informado" : `${v < 0 ? "−" : "+"} ${formatarReais(Math.abs(v))}`);
 
 export default async function PaginaAnalise({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -37,7 +40,7 @@ export default async function PaginaAnalise({ params }: { params: Promise<{ id: 
     <>
       <Cabecalho usuario={usuario} carteira={cart} />
       <main className="mx-auto max-w-[1000px] px-4 py-6">
-        <nav className="mb-3 text-sm text-neutral-600">
+        <nav className="mb-3 text-sm text-neutral-600 print:hidden">
           <Link href="/analises" className="hover:text-neutral-900">Análises</Link> › <span className="text-neutral-900">{leilao?.titulo ?? "Leilão"}</span>
         </nav>
 
@@ -63,27 +66,67 @@ export default async function PaginaAnalise({ params }: { params: Promise<{ id: 
           </section>
         ) : (
           <div className="space-y-4">
-            <section className="rounded-md bg-white p-5 shadow-sm">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h1 className="text-xl font-semibold leading-snug">{leilao?.titulo ?? "Leilão"}</h1>
-                  <p className="mt-1 text-xs text-neutral-500">
-                    Análise concluída em {formatarDataHora(a.concluida_em as string)} · confiança {Math.round(r.confianca * 100)}%
-                    {leilao && (
-                      <>
-                        {" · "}
-                        <Link href={`/leilao/${leilao.id}`} className="text-[var(--azul)]">ver ficha</Link>
-                      </>
-                    )}
-                  </p>
+            <section className="overflow-hidden rounded-md bg-white shadow-sm">
+              <div className="grid gap-0 sm:grid-cols-[220px_minmax(0,1fr)]">
+                <div className="relative aspect-[4/3] bg-neutral-100 sm:aspect-auto sm:min-h-[180px] print:aspect-[4/3] print:self-start">
+                  {leilao?.fotos[0] ? (
+                    <Image src={leilao.fotos[0]} alt={leilao.titulo} fill sizes="(min-width: 640px) 220px, 100vw" className="object-cover" unoptimized priority />
+                  ) : (
+                    <span className="grid h-full place-items-center text-xs text-neutral-400">sem foto</span>
+                  )}
                 </div>
-                <span className={`rounded-sm px-3 py-1 text-sm font-bold uppercase tracking-wide ${VEREDITO[r.veredito]?.cor ?? ""}`}>{VEREDITO[r.veredito]?.rotulo ?? r.veredito}</span>
+                <div className="p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="hidden text-xs font-semibold uppercase tracking-wide text-neutral-500 print:block">Veículo Sem Juros · Análise Premium</p>
+                      <h1 className="text-xl font-semibold leading-snug">{leilao?.titulo ?? "Leilão"}</h1>
+                      <p className="mt-1 text-xs text-neutral-500">
+                        Análise concluída em {formatarDataHora(a.concluida_em as string)} · confiança {Math.round(r.confianca * 100)}%
+                        {leilao && (
+                          <>
+                            {" · "}
+                            <Link href={`/leilao/${leilao.id}`} className="text-[var(--azul)] print:hidden">ver ficha</Link>
+                            <span className="hidden print:inline">{[leilao.cidade && `${leilao.cidade}/${leilao.uf ?? ""}`, leilao.valor != null && `lance ${formatarReais(leilao.valor)}`].filter(Boolean).join(" · ")}</span>
+                          </>
+                        )}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <BotaoImprimir />
+                      <span className={`rounded-sm px-3 py-1 text-sm font-bold uppercase tracking-wide ${VEREDITO[r.veredito]?.cor ?? ""}`}>{VEREDITO[r.veredito]?.rotulo ?? r.veredito}</span>
+                    </div>
+                  </div>
+                  <p className="mt-4 text-[15px] leading-relaxed text-neutral-800">{r.resumo}</p>
+                </div>
               </div>
-              <p className="mt-4 text-[15px] leading-relaxed text-neutral-800">{r.resumo}</p>
             </section>
 
+            {r.recomendacoes && (
+              <section className="grid gap-4 md:grid-cols-2">
+                <Recomendacao
+                  titulo="Para uso próprio"
+                  rec={r.recomendacoes.uso_proprio}
+                  linhas={[
+                    ["Custo total estimado (carro rodando e documentado)", r$(r.recomendacoes.uso_proprio.custo_total_estimado)],
+                    ["Economia frente ao mercado", sinal(r.recomendacoes.uso_proprio.economia_vs_mercado)],
+                  ]}
+                />
+                <Recomendacao
+                  titulo="Para revenda"
+                  rec={r.recomendacoes.revenda}
+                  linhas={[
+                    ["Preço de revenda estimado (venda rápida)", r$(r.recomendacoes.revenda.preco_revenda_estimado)],
+                    ["Faixa de revenda", r.recomendacoes.revenda.preco_revenda_min != null || r.recomendacoes.revenda.preco_revenda_max != null ? `${r$(r.recomendacoes.revenda.preco_revenda_min)} a ${r$(r.recomendacoes.revenda.preco_revenda_max)}` : "não informado"],
+                    ["Prazo para vender", r.recomendacoes.revenda.prazo_venda_dias != null ? `${r.recomendacoes.revenda.prazo_venda_dias} dias` : "não informado"],
+                    ["Lucro estimado", sinal(r.recomendacoes.revenda.lucro_estimado)],
+                    ["Margem", r.recomendacoes.revenda.margem_pct != null ? `${r.recomendacoes.revenda.margem_pct.toFixed(1).replace(".", ",")}%` : "não informado"],
+                  ]}
+                />
+              </section>
+            )}
+
             <section className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-md bg-white p-5 shadow-sm">
+              <div className="min-w-0 rounded-md bg-white p-5 shadow-sm">
                 <h2 className="text-base font-semibold">Valores</h2>
                 <dl className="mt-3 space-y-2 text-sm">
                   <Linha rotulo="Tabela FIPE" valor={r$(r.valores.fipe)} />
@@ -100,7 +143,7 @@ export default async function PaginaAnalise({ params }: { params: Promise<{ id: 
                     <ul className="mt-1 space-y-1 text-sm">
                       {r.valores.mercado_fontes.map((f) => (
                         <li key={f.url} className="flex justify-between gap-3">
-                          <a href={f.url} target="_blank" rel="noopener noreferrer" className="truncate text-[var(--azul)]">{f.titulo}</a>
+                          <a href={f.url} target="_blank" rel="noopener noreferrer" className="min-w-0 truncate text-[var(--azul)]">{f.titulo}</a>
                           <span className="shrink-0 font-medium">{r$(f.preco)}</span>
                         </li>
                       ))}
@@ -111,7 +154,21 @@ export default async function PaginaAnalise({ params }: { params: Promise<{ id: 
 
               <div className="rounded-md border-2 border-[var(--verde)] bg-white p-5 shadow-sm">
                 <h2 className="text-base font-semibold">Até onde ir no lance</h2>
-                <p className="mt-2 text-3xl font-semibold text-[var(--verde)]">{r$(r.lance_maximo.valor)}</p>
+                <div className="mt-2 flex flex-wrap gap-x-8 gap-y-2">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Uso próprio</p>
+                    <p className="text-3xl font-semibold text-[var(--verde)]">{r$(r.lance_maximo.valor)}</p>
+                  </div>
+                  {r.lance_maximo.valor_revenda != null && (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Revenda</p>
+                      <p className={`text-3xl font-semibold ${r.valores.segunda_praca != null && r.lance_maximo.valor_revenda < r.valores.segunda_praca ? "text-red-600" : "text-neutral-800"}`}>{r$(r.lance_maximo.valor_revenda)}</p>
+                      {r.valores.segunda_praca != null && r.lance_maximo.valor_revenda < r.valores.segunda_praca && (
+                        <p className="text-xs text-red-700">abaixo do lance mínimo: revenda não compensa</p>
+                      )}
+                    </div>
+                  )}
+                </div>
                 <p className="mt-2 text-sm text-neutral-700">{r.lance_maximo.justificativa}</p>
                 {r.lance_maximo.custos_extras.length > 0 && (
                   <>
@@ -173,7 +230,7 @@ export default async function PaginaAnalise({ params }: { params: Promise<{ id: 
             </section>
 
             <section className="rounded-md bg-white p-5 shadow-sm">
-              <h2 className="text-base font-semibold">Cenários</h2>
+              <h2 className="text-base font-semibold">Cenários de risco</h2>
               <div className="mt-3 grid gap-3 md:grid-cols-2">
                 {r.cenarios.map((c) => (
                   <div key={c.nome} className="rounded-sm border border-neutral-200 p-3 text-sm">
@@ -186,6 +243,38 @@ export default async function PaginaAnalise({ params }: { params: Promise<{ id: 
                 ))}
               </div>
             </section>
+
+            {r.cenarios_revenda && r.cenarios_revenda.length > 0 && (
+              <section className="rounded-md bg-white p-5 shadow-sm">
+                <h2 className="text-base font-semibold">Cenários de revenda, com custos</h2>
+                <p className="mt-1 text-xs text-neutral-500">Cada cenário fecha a conta: lance + todos os custos até o carro estar à venda, contra o preço de venda esperado.</p>
+                <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                  {r.cenarios_revenda.map((c) => (
+                    <div key={c.nome} className={`rounded-sm border p-3 text-sm ${c.lucro != null && c.lucro < 0 ? "border-red-200" : "border-neutral-200"}`}>
+                      <div className="flex flex-wrap items-baseline justify-between gap-2">
+                        <p className="font-semibold">{c.nome}</p>
+                        <span className="text-xs text-neutral-500">probabilidade {PROB[c.probabilidade] ?? c.probabilidade}{c.prazo_dias != null && ` · ${c.prazo_dias} dias`}</span>
+                      </div>
+                      <p className="mt-1 text-neutral-700">{c.descricao}</p>
+                      <table className="mt-3 w-full text-[13px]">
+                        <tbody>
+                          <tr><td className="py-0.5 text-neutral-600">Lance</td><td className="py-0.5 text-right font-medium">{r$(c.lance)}</td></tr>
+                          {c.custos.map((k) => (
+                            <tr key={k.item}><td className="py-0.5 pl-3 text-neutral-600">+ {k.item}</td><td className="py-0.5 text-right">{r$(k.valor)}</td></tr>
+                          ))}
+                          <tr className="border-t border-neutral-200"><td className="py-1 font-semibold">Custo total</td><td className="py-1 text-right font-semibold">{r$(c.custo_total)}</td></tr>
+                          <tr><td className="py-0.5 text-neutral-600">Preço de venda</td><td className="py-0.5 text-right font-medium">{r$(c.preco_venda)}</td></tr>
+                          <tr className="border-t border-neutral-200">
+                            <td className="py-1 font-semibold">{c.lucro != null && c.lucro < 0 ? "Prejuízo" : "Lucro"}</td>
+                            <td className={`py-1 text-right text-base font-semibold ${c.lucro == null ? "" : c.lucro < 0 ? "text-red-600" : "text-[var(--verde)]"}`}>{sinal(c.lucro)}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
             <section className="rounded-md bg-white p-5 shadow-sm">
               <h2 className="text-base font-semibold">Próximos passos</h2>
@@ -209,6 +298,31 @@ function Linha({ rotulo, valor, destaque }: { rotulo: string; valor: string; des
     <div className="flex justify-between gap-3">
       <dt className="text-neutral-600">{rotulo}</dt>
       <dd className={`text-right ${destaque ? "font-semibold text-[var(--verde)]" : "font-medium"}`}>{valor}</dd>
+    </div>
+  );
+}
+
+type Rec = { recomenda: boolean; nota: number; motivo: string };
+function Recomendacao({ titulo, rec, linhas }: { titulo: string; rec: Rec; linhas: [string, string][] }) {
+  const nota = Math.max(0, Math.min(10, Math.round(rec.nota)));
+  return (
+    <div className={`rounded-md border-2 bg-white p-5 shadow-sm ${rec.recomenda ? "border-[var(--verde)]" : "border-red-300"}`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-base font-semibold">{titulo}</h2>
+        <span className={`rounded-sm px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-white ${rec.recomenda ? "bg-[var(--verde)]" : "bg-red-600"}`}>
+          {rec.recomenda ? "Recomendado" : "Não recomendado"}
+        </span>
+      </div>
+      <div className="mt-3 flex items-center gap-3">
+        <span className="text-3xl font-semibold leading-none">{nota}<span className="text-base font-normal text-neutral-500">/10</span></span>
+        <div className="h-2 flex-1 overflow-hidden rounded-full bg-neutral-100" aria-hidden>
+          <div className={`h-full rounded-full ${rec.recomenda ? "bg-[var(--verde)]" : "bg-red-500"}`} style={{ width: `${nota * 10}%` }} />
+        </div>
+      </div>
+      <p className="mt-3 text-sm text-neutral-700">{rec.motivo}</p>
+      <dl className="mt-3 space-y-1 border-t border-neutral-100 pt-3 text-sm">
+        {linhas.map(([k, v]) => <Linha key={k} rotulo={k} valor={v} />)}
+      </dl>
     </div>
   );
 }

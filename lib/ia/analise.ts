@@ -59,8 +59,42 @@ export const EsquemaAnalise = z.object({
       resultado_financeiro: z.string().describe("ganho ou perda estimada em R$, com a conta"),
     }),
   ),
+  recomendacoes: z.object({
+    uso_proprio: z.object({
+      recomenda: z.boolean(),
+      nota: z.number().min(0).max(10).describe("0 a 10: quão boa é a compra para quem vai usar o carro"),
+      motivo: z.string().describe("2 a 4 frases diretas"),
+      custo_total_estimado: z.number().nullable().describe("lance mínimo + todos os custos para ter o carro rodando e documentado"),
+      economia_vs_mercado: z.number().nullable().describe("quanto economiza frente a comprar pronto no mercado (negativo = sai mais caro)"),
+    }),
+    revenda: z.object({
+      recomenda: z.boolean(),
+      nota: z.number().min(0).max(10).describe("0 a 10: quão bom é como negócio de revenda"),
+      motivo: z.string().describe("2 a 4 frases diretas, incluindo liquidez (facilidade de vender)"),
+      preco_revenda_estimado: z.number().nullable().describe("preço realista de venda rápida (30 a 60 dias) depois de recuperado e documentado"),
+      preco_revenda_min: z.number().nullable().describe("piso: venda rápida para lojista ou com defeito aparente"),
+      preco_revenda_max: z.number().nullable().describe("teto: venda a particular, carro impecável"),
+      prazo_venda_dias: z.number().nullable(),
+      lucro_estimado: z.number().nullable().describe("preço de revenda estimado − (lance mínimo + custos totais); negativo = prejuízo"),
+      margem_pct: z.number().nullable().describe("lucro estimado / custo total × 100"),
+    }),
+  }),
+  cenarios_revenda: z.array(
+    z.object({
+      nome: z.string(),
+      probabilidade: z.enum(["baixa", "media", "alta"]),
+      descricao: z.string(),
+      lance: z.number().nullable(),
+      custos: z.array(z.object({ item: z.string(), valor: z.number().nullable() })).describe("cada custo até o carro estar à venda: comissão, custas, guincho, chave, mecânica, funilaria, documentação, estadia, anúncio"),
+      custo_total: z.number().nullable().describe("lance + soma dos custos"),
+      preco_venda: z.number().nullable(),
+      lucro: z.number().nullable().describe("preço de venda − custo total"),
+      prazo_dias: z.number().nullable(),
+    }),
+  ).describe("2 a 4 cenários de revenda, do otimista ao pessimista, sempre com a conta fechada"),
   lance_maximo: z.object({
-    valor: z.number().nullable().describe("até onde ir no lance para ainda valer a pena"),
+    valor: z.number().nullable().describe("até onde ir no lance para uso próprio"),
+    valor_revenda: z.number().nullable().describe("até onde ir no lance para ainda lucrar na revenda (pode ficar abaixo do lance mínimo: aí a revenda não compensa)"),
     justificativa: z.string(),
     custos_extras: z.array(z.object({ item: z.string(), valor: z.number().nullable() })).describe("comissão, débitos, documentação, reparos, transporte"),
   }),
@@ -78,7 +112,10 @@ Método:
 3. Use a busca na web para encontrar anúncios ATUAIS do mesmo modelo e ano no Brasil (Webmotors, OLX, iCarros, Mobiauto, Mercado Livre). Registre o mais barato e o mais caro com link. Se não achar o ano exato, use o ano vizinho e diga isso.
 4. Compare: lance mínimo vigente × FIPE × mercado. Some os custos extras (comissão, débitos, documentação, reparos prováveis, transporte) e calcule até onde o lance ainda deixa margem para quem quer usar e para quem quer revender.
 5. Monte 2 a 4 cenários realistas (ex.: "carro bom e documentação ok", "débitos maiores que o previsto", "veículo sem motor") com probabilidade e resultado financeiro.
-6. Dê um veredito honesto. Se faltar informação essencial (sem edital, sem fotos, sem valor), diga e reduza a confiança.
+6. Responda separadamente duas perguntas: (a) recomendo para USO PRÓPRIO? (b) recomendo para REVENDA? Para revenda, estime por quanto o carro vende depois de recuperado e documentado (piso, teto e preço realista de venda em 30 a 60 dias), o prazo de venda e o lucro líquido. Lembre que revendedor precisa de pelo menos 15% a 20% de margem para compensar capital parado, estadia, anúncio e risco.
+7. Monte 2 a 4 cenários de REVENDA com a conta fechada: lance + cada custo (comissão, custas, guincho, chave, mecânica, funilaria, documentação, estadia, anúncio) = custo total; preço de venda; lucro; prazo.
+8. Diga até onde ir no lance para uso próprio e, separadamente, para revenda.
+9. Dê um veredito honesto. Se faltar informação essencial (sem edital, sem fotos, sem valor), diga e reduza a confiança.
 
 Nunca invente dados: tudo que não constar na ficha, nos documentos ou nos anúncios encontrados é "não informado".`;
 

@@ -1,6 +1,6 @@
 export function Rodape() {
   return (
-    <footer className="mt-12 border-t border-neutral-200 bg-white">
+    <footer className="mt-12 border-t border-neutral-200 bg-white print:hidden">
       <div className="mx-auto max-w-[1200px] px-4 py-8 text-sm text-neutral-600">
         <div className="flex flex-wrap gap-x-8 gap-y-2">
           <span>Termos de uso</span>

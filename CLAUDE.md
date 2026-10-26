@@ -70,6 +70,15 @@ deploy com o `crmxpn` (CRM XPN). Nada daquele repositório vale aqui, exceto as 
   registra erro visível no admin); `SUPABASE_SERVICE_ROLE_KEY` no servidor para criar contas pelo painel.
   Webmotors bloqueia robôs (PerimeterX): valor de mercado vem da busca web dentro da análise, com links.
 
+- 26/10/2026 (manhã): **análise com recomendações de uso próprio e revenda.** `EsquemaAnalise` ganhou `recomendacoes`
+  (uso_proprio/revenda: recomenda, nota 0–10, motivo, custo total, preço de revenda min/estimado/max, prazo, lucro, margem),
+  `cenarios_revenda` (2–4 cenários com lista de custos e conta fechada) e `lance_maximo.valor_revenda` (teto para revender;
+  em vermelho quando fica abaixo da 2ª praça). Página `/analises/[id]` mostra foto do lote, cartões de recomendação, tabela
+  de custos por cenário e botão **Baixar PDF** (`BotaoImprimir` → `window.print()`; CSS `@media print` em `globals.css`,
+  cabeçalho/rodapé/nav com `print:hidden`). Lista `/analises` tem miniatura do carro. `lib/leiloes/parcelamento.ts`
+  detecta edital sem parcelamento (alienação antecipada criminal, "à vista") → `parcelavel=false` mesmo em judicial.
+  Análise manual 79031148 (Discovery Sport) atualizada com os campos novos via SQL.
+
 ## Front end
 - Paleta em `app/globals.css` (`--amarelo`, `--azul`, `--verde`, `--laranja`, `--fundo`). Sem dark mode por ora.
 - `LeilaoVitrine` (lib/leiloes/tipos.ts) **não tem `fonte_url`**: o link do leiloeiro só sai via desbloqueio.
