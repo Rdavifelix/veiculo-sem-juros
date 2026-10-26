@@ -27,6 +27,8 @@ const UFS: Record<string, string> = {
 function categoriaDe(l: Leilao): Categoria {
   const cat = String(l.raw.categoria ?? "").toLowerCase();
   const texto = `${l.titulo} ${cat}`.toLowerCase();
+  // Fontes extrajudiciais às vezes classificam imóveis/bens diversos como "Carros & Motos"; não são veículos.
+  if (/im[oó]vel|apartamento|terreno|\bcasa\b|lote de terr|sala comercial|galp[aã]o|\bsítio\b|fazenda|\bchácara\b/.test(texto)) return "outro";
   // \b evita "automotor" casar com "moto".
   if (/\bmotos?\b|motocicleta|scooter|ciclomotor|\bmotoneta/.test(texto) && !/motor ?home/.test(texto)) return "moto";
   if (/caminh|ônibus|onibus|carreta|cavalo mec|trator|retroescav|empilhadeira|\bvan\b|micro-?ônibus|\bcrm\b|\baxor\b|\batego\b|\bconstellation\b/.test(texto)) return "caminhao";
@@ -210,7 +212,7 @@ export async function buscarPorId(id: string): Promise<LeilaoVitrine | null> {
 
 /** Destaques da home pública: maiores valores com foto, metade judiciais quando houver. */
 export async function destaques(n = 12): Promise<LeilaoVitrine[]> {
-  const comFoto = (await todos()).filter((l) => l.fotos.length && l.valor);
+  const comFoto = (await todos()).filter((l) => l.fotos.length && l.valor && l.categoria !== "outro");
   const judiciais = comFoto.filter((l) => l.tipo === "judicial").sort((a, b) => (b.valor ?? 0) - (a.valor ?? 0)).slice(0, Math.ceil(n / 2));
   const resto = comFoto.filter((l) => !judiciais.includes(l)).sort((a, b) => (b.valor ?? 0) - (a.valor ?? 0));
   return [...judiciais, ...resto].slice(0, n);
