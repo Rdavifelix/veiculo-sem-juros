@@ -114,14 +114,20 @@ export function BarraBusca({ filtros, marcas, carteira, acao }: { filtros: Filtr
           </div>
         </Chip>
 
-        <div className="ml-auto flex items-center gap-2 text-sm" title={`${carteira.cotaUsadas} buscas pagas neste mês de ${carteira.cotaLimite}`}>
-          <span className={`font-semibold ${pct >= 80 ? "text-red-600" : "text-neutral-700"}`}>
-            {carteira.cotaUsadas}/{carteira.cotaLimite}
-          </span>
-          <span className="h-1.5 w-20 overflow-hidden rounded-full bg-neutral-200">
-            <span className={`block h-full rounded-full ${pct >= 80 ? "bg-red-500" : "bg-[var(--azul)]"}`} style={{ width: `${Math.max(4, pct)}%` }} />
-          </span>
-        </div>
+        {carteira.plano.buscas_ilimitadas ? (
+          <div className="ml-auto flex items-center gap-1.5 text-sm font-semibold text-neutral-700" title="Seu plano tem buscas ilimitadas">
+            <span className="text-[var(--verde)]">∞</span> buscas ilimitadas
+          </div>
+        ) : (
+          <div className="ml-auto flex items-center gap-2 text-sm" title={`${carteira.cotaUsadas} buscas pagas neste mês de ${carteira.cotaLimite}`}>
+            <span className={`font-semibold ${pct >= 80 ? "text-red-600" : "text-neutral-700"}`}>
+              {carteira.cotaUsadas}/{carteira.cotaLimite}
+            </span>
+            <span className="h-1.5 w-20 overflow-hidden rounded-full bg-neutral-200">
+              <span className={`block h-full rounded-full ${pct >= 80 ? "bg-red-500" : "bg-[var(--azul)]"}`} style={{ width: `${Math.max(4, pct)}%` }} />
+            </span>
+          </div>
+        )}
       </div>
     </form>
   );

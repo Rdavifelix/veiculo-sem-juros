@@ -55,14 +55,16 @@ export default async function Busca({ searchParams }: { searchParams: Promise<Pa
         <div className="mb-3 flex items-center gap-6 text-sm">
           <span className="border-b-2 border-[var(--azul)] pb-1 font-semibold">Buscar</span>
           <Link href="/desbloqueados" className="pb-1 text-neutral-600 hover:text-neutral-900">Desbloqueados</Link>
+          <Link href="/analises" className="pb-1 text-neutral-600 hover:text-neutral-900">Análises</Link>
           <span className="ml-auto text-right text-neutral-600">
-            <strong className="text-neutral-900">{cart.saldo}</strong> créditos<span className="hidden md:inline"> · 1 crédito por busca com resultado ou por link desbloqueado</span>
+            <strong className="text-neutral-900">{cart.saldo}</strong> créditos
+            <span className="hidden md:inline">{cart.plano.buscas_ilimitadas ? " · buscas ilimitadas no Premium · 1 crédito por link desbloqueado" : " · 1 crédito por busca com resultado ou por link desbloqueado"}</span>
           </span>
         </div>
 
         <BarraBusca filtros={filtros} marcas={facetasBase.facetas.marca} carteira={cart} acao={buscar} />
         <p className="mt-2 text-xs text-neutral-600">
-          <span aria-hidden>ⓘ </span>Cada busca mostra até <strong>{MAX_RESULTADOS_BUSCA} veículos</strong>. Use marca, estado, preço e data para chegar direto nos que interessam. Busca sem resultado não gasta crédito.
+          <span aria-hidden>ⓘ </span>Cada busca mostra até <strong>{MAX_RESULTADOS_BUSCA} veículos</strong>. Use marca, estado, preço e data para chegar direto nos que interessam.{cart.plano.buscas_ilimitadas ? "" : " Busca sem resultado não gasta crédito."}
         </p>
 
         {erro === "sem_creditos" && (

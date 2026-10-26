@@ -77,8 +77,10 @@ Regras no banco: débito de crédito por RPC transacional (`gastar_credito`), un
 ## Fases sugeridas
 1. **Esqueleto + auth + onboarding gate + busca sobre uma base semente** + créditos/desbloqueio.
    *Feito em 26/10:* projeto Supabase, coleta agendada, home pública, auth, créditos (RPCs no banco), `/busca`
-   paga com a barra do modelo, desbloqueio com confirmação, `/desbloqueados`. *Falta:* gate de onboarding,
-   compra de créditos (checkout), "Como usar".
+   paga com a barra do modelo, desbloqueio com confirmação, `/desbloqueados` (cards curtidos), ficha interna do
+   lote com edital/documentos, planos VSJ e VSJ Premium (buscas ilimitadas, FIPE, mercado, análises por IA),
+   painel `/admin`, `/analises`. *Falta:* gate de onboarding, compra de créditos (checkout), "Como usar",
+   Oportunidade do dia.
 2. Oportunidade do dia (perfil + recomendação + análise).
 3. Área de membros, fórum, reportar problema.
 4. Coleta automática de leilões (protótipo pronto em `scripts/coleta/`; falta tabela `fontes`, job agendado e mais parsers).

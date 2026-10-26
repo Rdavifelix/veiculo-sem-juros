@@ -19,9 +19,16 @@ export function Cabecalho({ usuario, carteira }: { usuario?: Sessao | null; cart
             <>
               <Link href="/busca" className="hidden hover:text-black sm:inline">Busca</Link>
               <Link href="/desbloqueados" className="hidden hover:text-black sm:inline">Desbloqueados</Link>
+              <Link href="/analises" className="hidden hover:text-black sm:inline">Análises</Link>
+              {carteira?.admin && <Link href="/admin" className="hidden font-semibold hover:text-black sm:inline">Admin</Link>}
               {carteira && (
-                <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-semibold" title="Créditos disponíveis">
-                  {carteira.saldo} {carteira.saldo === 1 ? "crédito" : "créditos"}
+                <span className="flex items-center gap-1.5">
+                  {carteira.plano.id === "premium" && (
+                    <span className="rounded-full bg-neutral-900 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-[var(--amarelo)]" title={carteira.plano.nome}>Premium</span>
+                  )}
+                  <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-semibold" title="Créditos disponíveis">
+                    {carteira.saldo} {carteira.saldo === 1 ? "crédito" : "créditos"}
+                  </span>
                 </span>
               )}
               <span className="hidden text-neutral-700 md:inline">Olá, {usuario.nome.split(" ")[0]}</span>
@@ -43,6 +50,8 @@ export function Cabecalho({ usuario, carteira }: { usuario?: Sessao | null; cart
         <nav className="mx-auto flex max-w-[1200px] gap-5 px-4 pb-2 text-sm sm:hidden" aria-label="Seções">
           <Link href="/busca" className="font-semibold">Busca</Link>
           <Link href="/desbloqueados" className="font-semibold">Desbloqueados</Link>
+          <Link href="/analises" className="font-semibold">Análises</Link>
+          {carteira?.admin && <Link href="/admin" className="font-semibold">Admin</Link>}
           <span className="ml-auto text-neutral-700">Olá, {usuario.nome.split(" ")[0]}</span>
         </nav>
       )}

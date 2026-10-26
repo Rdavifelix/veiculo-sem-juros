@@ -8,6 +8,9 @@ import { usuarioAtual } from "@/lib/auth";
 import { carteira, desbloquear, idsDesbloqueados } from "@/lib/creditos";
 import { capitalizarTitulo, formatarDataHora, formatarMilhar, formatarReais, rotuloEncerramento } from "@/lib/formatar";
 import { detalheLeilao } from "@/lib/leiloes/detalhe";
+import { consultarFipe } from "@/lib/fipe";
+import { solicitarAnalise } from "@/app/analises/actions";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Ficha do leilão", robots: { index: false } };
 
@@ -16,8 +19,9 @@ export const metadata: Metadata = { title: "Ficha do leilão", robots: { index: 
  * Layout: no celular/tablet uma coluna na ordem foto → valores → pagamento → leiloeiro → detalhes, com barra fixa
  * de ação no rodapé; no desktop (≥1024px) duas colunas, com valores/pagamento/leiloeiro fixos à direita.
  */
-export default async function FichaLeilao({ params }: { params: Promise<{ id: string }> }) {
+export default async function FichaLeilao({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ analise?: string }> }) {
   const { id } = await params;
+  const { analise: avisoAnalise } = await searchParams;
   const usuario = await usuarioAtual();
   if (!usuario) redirect(`/login?next=/leilao/${id}`);
   const desbloqueados = await idsDesbloqueados();
@@ -25,6 +29,14 @@ export default async function FichaLeilao({ params }: { params: Promise<{ id: st
 
   const [l, cart, link] = await Promise.all([detalheLeilao(id), carteira(), desbloquear(id)]);
   if (!l) redirect("/desbloqueados");
+  const premium = cart.plano.fipe || cart.plano.analises_mes > 0;
+  const supabase = await createClient();
+  const [fipe, { data: analiseExistente }] = await Promise.all([
+    premium ? consultarFipe(l.marca, l.titulo, l.ano) : Promise.resolve(null),
+    supabase.from("analyses").select("id, status").eq("auction_id", id).maybeSingle(),
+  ]);
+  const fipeOk = fipe && !("nao_encontrado" in fipe) ? fipe : null;
+  const descontoFipe = fipeOk && l.valor ? Math.round((1 - l.valor / fipeOk.valor) * 100) : null;
   const urlLeiloeiro = "url" in link ? link.url : null;
   const enc = rotuloEncerramento(l.encerra_em);
   const titulo = capitalizarTitulo(l.titulo);
@@ -96,6 +108,73 @@ export default async function FichaLeilao({ params }: { params: Promise<{ id: st
                 {l.lances != null && <Linha rotulo="Lances" valor={String(l.lances)} />}
                 {l.visitas != null && <Linha rotulo="Visitas" valor={formatarMilhar(l.visitas)} />}
               </dl>
+            </section>
+
+            {/* Premium: FIPE, mercado e análise por IA */}
+            <section className="rounded-md border border-neutral-900/10 bg-neutral-900 p-4 text-white shadow-sm sm:p-5">
+              <h2 className="flex items-center justify-between text-base font-semibold">
+                Inteligência Premium
+                <span className="rounded-full bg-[var(--amarelo)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-neutral-900">VSJ Premium</span>
+              </h2>
+              {premium ? (
+                <>
+                  <dl className="mt-3 space-y-2 text-sm">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <dt className="text-neutral-300">Tabela FIPE</dt>
+                      <dd className="text-right">
+                        {fipeOk ? (
+                          <>
+                            <span className="text-lg font-semibold">{formatarReais(fipeOk.valor)}</span>
+                            {descontoFipe != null && descontoFipe > 0 && <span className="ml-2 rounded-sm bg-[var(--verde)] px-1.5 py-px text-xs font-semibold">-{descontoFipe}% vs. lance</span>}
+                          </>
+                        ) : (
+                          <span className="text-neutral-400">{fipe === null ? "indisponível agora" : "modelo não encontrado"}</span>
+                        )}
+                      </dd>
+                    </div>
+                    {fipeOk && (
+                      <p className="text-xs text-neutral-400">
+                        {fipeOk.marca} {fipeOk.modelo} · {fipeOk.ano} · ref. {fipeOk.referencia} · código {fipeOk.codigo}
+                        {fipeOk.confianca < 0.8 && " · confira se o modelo FIPE corresponde ao lote"}
+                      </p>
+                    )}
+                    <div className="flex items-baseline justify-between gap-3">
+                      <dt className="text-neutral-300">Valor de mercado</dt>
+                      <dd className="text-right text-xs text-neutral-400">do mais barato ao mais caro: na análise, com os anúncios e links</dd>
+                    </div>
+                  </dl>
+                  {analiseExistente ? (
+                    <Link href={`/analises/${analiseExistente.id}`} className="mt-4 flex min-h-11 items-center justify-center rounded-sm bg-[var(--amarelo)] px-3 py-2.5 text-sm font-semibold text-neutral-900">
+                      {analiseExistente.status === "disponivel" ? "Ver análise do veículo" : analiseExistente.status === "erro" ? "Análise falhou · ver detalhes" : "Análise em andamento · acompanhar"}
+                    </Link>
+                  ) : (
+                    <form action={solicitarAnalise} className="mt-4">
+                      <input type="hidden" name="auction_id" value={id} />
+                      <button type="submit" disabled={cart.analisesUsadas >= cart.analisesLimite} className="flex min-h-11 w-full items-center justify-center rounded-sm bg-[var(--amarelo)] px-3 py-2.5 text-sm font-semibold text-neutral-900 disabled:opacity-50">
+                        Pedir análise do veículo
+                      </button>
+                      <p className="mt-2 text-center text-xs text-neutral-400">
+                        {cart.analisesUsadas}/{cart.analisesLimite} análises usadas este mês · a IA lê o edital e os documentos, aponta pegadinhas, cenários e até onde ir no lance
+                      </p>
+                    </form>
+                  )}
+                  {avisoAnalise && (
+                    <p className="mt-2 rounded-sm bg-red-900/40 px-3 py-2 text-xs text-red-100">
+                      {avisoAnalise === "cota" ? "Cota de análises do mês esgotada." : avisoAnalise === "plano" ? "Seu plano não inclui análises." : avisoAnalise === "desbloqueio" ? "Desbloqueie o leilão antes." : "Não foi possível pedir a análise agora."}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <ul className="mt-3 space-y-1 text-sm text-neutral-300">
+                    <li>• Tabela FIPE do veículo e desconto real do lance</li>
+                    <li>• Valor de mercado, do anúncio mais barato ao mais caro</li>
+                    <li>• Análise por IA: edital, pegadinhas, cenários de risco e até onde ir no lance</li>
+                    <li>• Buscas ilimitadas</li>
+                  </ul>
+                  <p className="mt-3 text-sm font-semibold text-[var(--amarelo)]">Disponível no VSJ Premium · fale com a gente no WhatsApp</p>
+                </>
+              )}
             </section>
 
             <section className="rounded-md bg-white p-4 shadow-sm sm:p-5">

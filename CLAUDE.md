@@ -58,6 +58,18 @@ deploy com o `crmxpn` (CRM XPN). Nada daquele repositório vale aqui, exceto as 
   `/leilao/[id]/acessar` é a confirmação de 1 crédito; `/desbloqueados` lista os links. Primeiro usuário criado
   via SQL (auth.users + identities) com 20 créditos de bônus. Sem cadastro público, sem checkout ainda.
 
+- 26/10/2026 (madrugada): **planos, admin e análises por IA.** Tabela `planos` (`vsj` e `premium`), `profiles.plano/
+  plano_expira_em/is_admin`, RPC `plano_atual()`; `registrar_busca` não cobra no Premium. `analyses` + RPCs
+  `solicitar_analise` (cota mensal, exige desbloqueio), `iniciar_analise`, `concluir_analise`, `ficha_para_analise`
+  (única RPC que devolve `fonte_url` + raw, só para quem desbloqueou/admin). `fipe_cache` + `lib/fipe.ts` (API
+  pública parallelum, casamento por similaridade). `lib/ia/analise.ts`: Claude `claude-opus-5-5` via
+  `messages.parse` + `zodOutputFormat`, PDFs do edital como `document`, `web_search` para preço de mercado;
+  roda em `after()` da Server Action e grava via RPC. Páginas: `/admin` (visão, usuários com plano/créditos/
+  admin, análises com reprocessar, fontes), `/analises`, `/analises/[id]`, bloco "Inteligência Premium" na ficha.
+  João = admin + Premium (migração 000400). **Pendente:** `ANTHROPIC_API_KEY` no servidor (sem ela a análise
+  registra erro visível no admin); `SUPABASE_SERVICE_ROLE_KEY` no servidor para criar contas pelo painel.
+  Webmotors bloqueia robôs (PerimeterX): valor de mercado vem da busca web dentro da análise, com links.
+
 ## Front end
 - Paleta em `app/globals.css` (`--amarelo`, `--azul`, `--verde`, `--laranja`, `--fundo`). Sem dark mode por ora.
 - `LeilaoVitrine` (lib/leiloes/tipos.ts) **não tem `fonte_url`**: o link do leiloeiro só sai via desbloqueio.
@@ -70,6 +82,12 @@ deploy com o `crmxpn` (CRM XPN). Nada daquele repositório vale aqui, exceto as 
 - Dados: `lib/leiloes/supabase.ts` lê `auctions_vitrine` (anon só enxerga a view; `fonte_url` e `raw` completo
   nunca saem). Carga/atualização de lotes é só com service role (job) ou via MCP `execute_sql`.
 - **O repositório GitHub é público**: nada sensível em `data/seed` além de dados já públicos nos leiloeiros.
+
+## Planos, créditos e IA
+- Regra de cobrança fica nas RPCs; o front só lê `carteira()` (saldo, cotas, plano, admin). Nunca decidir cobrança no cliente.
+- Enum em `update ... set status = case ... end` precisa de `::public.status_analise` (PostgREST devolve 42804 sem o cast).
+- `after()` da Server Action mantém a sessão do usuário: as RPCs de análise rodam como o próprio usuário (ou admin).
+- Análise: não truncar PDFs; até 3 documentos de 20 MB. Se faltar chave da API, o erro vai para `analyses.erro`.
 
 ## Coleta (scripts/coleta)
 - Coletores são `.mjs` sem dependências; `sodresantoro` precisa de `playwright` (WAF). 1 req/s por host, UA

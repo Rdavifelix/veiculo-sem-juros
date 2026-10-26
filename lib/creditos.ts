@@ -1,22 +1,39 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { Filtros } from "@/lib/leiloes/tipos";
+import { PLANO_PADRAO, type Plano } from "@/lib/plano";
 
 export interface Carteira {
   saldo: number;
   cotaUsadas: number;
   cotaLimite: number;
+  plano: Plano;
+  analisesUsadas: number;
+  analisesLimite: number;
+  admin: boolean;
 }
 
-/** Saldo e cota do usuário logado (RPCs seguras: só enxergam auth.uid()). */
+/** Saldo, cotas, plano e papel do usuário logado (RPCs seguras: só enxergam auth.uid()). */
 export async function carteira(): Promise<Carteira> {
   const supabase = await createClient();
-  const [saldo, cota] = await Promise.all([supabase.rpc("saldo_creditos"), supabase.rpc("cota_buscas")]);
-  const linha = Array.isArray(cota.data) ? cota.data[0] : cota.data;
+  const [saldo, cota, plano, cotaAn, admin] = await Promise.all([
+    supabase.rpc("saldo_creditos"),
+    supabase.rpc("cota_buscas"),
+    supabase.rpc("plano_atual"),
+    supabase.rpc("cota_analises"),
+    supabase.rpc("is_admin"),
+  ]);
+  const um = (d: unknown) => (Array.isArray(d) ? d[0] : d) as Record<string, number> | null;
+  const c = um(cota.data);
+  const a = um(cotaAn.data);
   return {
     saldo: (saldo.data as number | null) ?? 0,
-    cotaUsadas: (linha as { usadas?: number } | null)?.usadas ?? 0,
-    cotaLimite: (linha as { limite?: number } | null)?.limite ?? 20,
+    cotaUsadas: c?.usadas ?? 0,
+    cotaLimite: c?.limite ?? 20,
+    plano: ((Array.isArray(plano.data) ? plano.data[0] : plano.data) as Plano | null) ?? PLANO_PADRAO,
+    analisesUsadas: a?.usadas ?? 0,
+    analisesLimite: a?.limite ?? 0,
+    admin: admin.data === true,
   };
 }
 
