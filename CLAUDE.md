@@ -87,6 +87,7 @@ deploy com o `crmxpn` (CRM XPN). Nada daquele repositório vale aqui, exceto as 
 - Criar usuário: `insert into auth.users/auth.identities` (ver histórico no MCP) + `conceder_creditos(id, n, 'bonus')`.
   Senha nunca no repositório nem no chat; preferir enviar link de redefinição (`/login/esqueci`).
 - Imagens de terceiros com `next/image unoptimized` e `remotePatterns: **`.
+- Galeria da ficha é Client Component (`app/leilao/[id]/Galeria.tsx`): setas, miniaturas, ← → e arrastar; foto nunca abre em outra aba.
 - Cache da vitrine é em memória do processo (5 min) — **não** usar `unstable_cache` (limite de 2 MB por entrada).
 - Dados: `lib/leiloes/supabase.ts` lê `auctions_vitrine` (anon só enxerga a view; `fonte_url` e `raw` completo
   nunca saem). Carga/atualização de lotes é só com service role (job) ou via MCP `execute_sql`.

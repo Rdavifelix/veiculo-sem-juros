@@ -11,6 +11,7 @@ import { detalheLeilao } from "@/lib/leiloes/detalhe";
 import { consultarFipe } from "@/lib/fipe";
 import { solicitarAnalise } from "@/app/analises/actions";
 import { createClient } from "@/lib/supabase/server";
+import { Galeria } from "./Galeria";
 
 export const metadata: Metadata = { title: "Ficha do leilão", robots: { index: false } };
 
@@ -54,24 +55,7 @@ export default async function FichaLeilao({ params, searchParams }: { params: Pr
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-6">
           {/* 1. Galeria */}
           <section className="min-w-0 overflow-hidden rounded-md bg-white shadow-sm lg:col-start-1 lg:row-start-1">
-            <div className="relative aspect-[4/3] bg-neutral-100">
-              {fotos[0] ? (
-                <Image src={fotos[0]} alt={titulo} fill sizes="(min-width:1024px) 820px, 100vw" className="object-contain" unoptimized priority />
-              ) : (
-                <div className="grid h-full place-items-center text-neutral-400">Imagem não disponível</div>
-              )}
-              <span className={`absolute right-3 top-3 rounded-sm px-2 py-0.5 text-xs font-semibold shadow-sm ${enc.urgente ? "bg-[var(--laranja)] text-white" : "bg-white/95"}`}>{enc.texto}</span>
-              {fotos.length > 1 && <span className="absolute bottom-3 right-3 rounded-sm bg-black/60 px-2 py-0.5 text-xs font-semibold text-white">{fotos.length} fotos</span>}
-            </div>
-            {fotos.length > 1 && (
-              <div className="flex snap-x gap-2 overflow-x-auto p-3 [scrollbar-width:thin]">
-                {fotos.slice(1, 13).map((f) => (
-                  <a key={f} href={f} target="_blank" rel="noopener noreferrer" className="relative h-16 w-24 shrink-0 snap-start overflow-hidden rounded-sm bg-neutral-100 sm:h-20 sm:w-28">
-                    <Image src={f} alt="" fill sizes="112px" className="object-cover" unoptimized />
-                  </a>
-                ))}
-              </div>
-            )}
+            <Galeria fotos={fotos} titulo={titulo} selo={{ texto: enc.texto, urgente: enc.urgente }} />
           </section>
 
           {/* 2. Valores · pagamento · leiloeiro (direita no desktop, logo após a foto no celular) */}
@@ -125,7 +109,7 @@ export default async function FichaLeilao({ params, searchParams }: { params: Pr
                         {fipeOk ? (
                           <>
                             <span className="text-lg font-semibold">{formatarReais(fipeOk.valor)}</span>
-                            {descontoFipe != null && descontoFipe > 0 && <span className="ml-2 rounded-sm bg-[var(--verde)] px-1.5 py-px text-xs font-semibold">-{descontoFipe}% vs. lance</span>}
+                            {descontoFipe != null && descontoFipe > 0 && <span className="ml-2 inline-block whitespace-nowrap rounded-sm bg-[var(--verde)] px-1.5 py-px text-xs font-semibold">-{descontoFipe}% vs. lance</span>}
                           </>
                         ) : (
                           <span className="text-neutral-400">{fipe === null ? "indisponível agora" : "modelo não encontrado"}</span>
