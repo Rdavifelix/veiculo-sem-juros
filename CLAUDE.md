@@ -25,10 +25,14 @@ deploy com o `crmxpn` (CRM XPN). Nada daquele repositório vale aqui, exceto as 
   selo "Entrada 25% · até 30x", 1ª praça riscada, % OFF, botão 🔒 Acessar leilão), ordenação e paginação.
   Tudo por `searchParams` em Server Component (`app/page.tsx`). Dados: `lib/leiloes/repositorio.ts` lendo
   `data/seed/leiloes.json` (179 lotes reais coletados hoje). `/login` é placeholder.
-- Supabase: a conta tem a org "sekretaria Org" com 8 projetos, **nenhum deste site**. Migração inicial pronta em
-  `supabase/migrations/20261026000100_fontes_e_auctions.sql` (fontes, auctions, view `auctions_vitrine` sem
-  `fonte_url`, RLS). Falta criar o projeto (custo na org — decisão do dono) e trocar o repositório para a view.
-- Projeto Supabase: **ainda não criado**. Criar um projeto próprio (não o `gaeimhrftedqdkjkpyyr` do CRM).
+- 26/10/2026: projeto Supabase criado (≈US$ 10/mês de instância Micro na org Pro, aprovado pelo dono), migração
+  `20261026000100_fontes_e_auctions.sql` aplicada, semente carregada via extensão `http` (o Postgres baixou
+  `data/seed/leiloes.json` do GitHub — o repo é público). `lib/leiloes/repositorio.ts` lê a view
+  `auctions_vitrine` quando há env (`lib/leiloes/supabase.ts`, cache de 5 min) e cai na semente sem env.
+- Projeto Supabase: **`veiculo-sem-juros`** (ref `bjrjngzckbezajjrkfwb`, org "sekretaria Org", sa-east-1), criado em
+  26/10/2026. URL `https://bjrjngzckbezajjrkfwb.supabase.co`; chave publicável no `.env.local` (não no git).
+  Migração aplicada: `fontes`, `auctions`, view `auctions_vitrine`. 179 lotes carregados da semente.
+  Não usar o `gaeimhrftedqdkjkpyyr` do CRM.
 - Projeto Vercel: ainda não conectado.
 
 ## Regras
@@ -46,6 +50,9 @@ deploy com o `crmxpn` (CRM XPN). Nada daquele repositório vale aqui, exceto as 
 - Filtros são links (`FiltrosLaterais`, `AbasCategorias`) — sem estado no cliente; facetas calculadas ignorando o
   próprio filtro para a contagem fazer sentido.
 - Imagens de terceiros com `next/image unoptimized` e `remotePatterns: **`.
+- Dados: `lib/leiloes/supabase.ts` lê `auctions_vitrine` (anon só enxerga a view; `fonte_url` e `raw` completo
+  nunca saem). Carga/atualização de lotes é só com service role (job) ou via MCP `execute_sql`.
+- **O repositório GitHub é público**: nada sensível em `data/seed` além de dados já públicos nos leiloeiros.
 
 ## Coleta (scripts/coleta)
 - Coletores são `.mjs` sem dependências; `sodresantoro` precisa de `playwright` (WAF). 1 req/s por host, UA

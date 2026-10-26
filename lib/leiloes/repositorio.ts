@@ -1,11 +1,13 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 import semente from "@/data/seed/leiloes.json";
+import { carregarVitrine, supabaseConfigurado } from "./supabase";
 import type { Categoria, Faceta, Filtros, Leilao, LeilaoVitrine, ResultadoBusca, TipoLeilao } from "./tipos";
 
 /**
- * Fonte de dados da vitrine. Hoje lê a base semente (`data/seed/leiloes.json`, coletada por
- * `scripts/coleta/`). Quando o projeto Supabase existir, `listar` passa a consultar a tabela
- * `auctions` com os mesmos filtros — a interface não muda.
+ * Fonte de dados da vitrine: a view `auctions_vitrine` do Supabase quando as variáveis de ambiente
+ * existem; senão a base semente (`data/seed/leiloes.json`, coletada por `scripts/coleta/`), o que
+ * mantém `npm run dev` funcionando sem banco. Os filtros e facetas são calculados em memória.
  */
 const POR_PAGINA = 24;
 
@@ -78,8 +80,34 @@ export function paraVitrine(l: Leilao): LeilaoVitrine {
   };
 }
 
-// Lotes já encerrados saem da vitrine (na tabela isso será `status = 'ativo'`).
-const TODOS: LeilaoVitrine[] = (semente as Leilao[]).map(paraVitrine).filter((l) => !l.encerra_em || new Date(l.encerra_em) > new Date());
+// Lotes já encerrados saem da vitrine (a view já filtra `status = 'ativo'`; a data garante o resto).
+function soAbertos(itens: Leilao[]): LeilaoVitrine[] {
+  const agora = new Date();
+  return itens.map(paraVitrine).filter((l) => !l.encerra_em || new Date(l.encerra_em) > agora);
+}
+
+const SEMENTE: LeilaoVitrine[] = soAbertos(semente as Leilao[]);
+
+// Cache de 5 min por processo: a vitrine muda só quando o job de coleta roda.
+const carregarDoBanco = unstable_cache(
+  async () => {
+    const itens = await carregarVitrine();
+    return itens.length ? itens : null;
+  },
+  ["auctions_vitrine"],
+  { revalidate: 300 },
+);
+
+async function todos(): Promise<LeilaoVitrine[]> {
+  if (!supabaseConfigurado()) return SEMENTE;
+  try {
+    const itens = await carregarDoBanco();
+    return itens ? soAbertos(itens) : SEMENTE;
+  } catch (e) {
+    console.error("[vitrine] falha ao ler o Supabase, usando semente:", e);
+    return SEMENTE;
+  }
+}
 
 function faixaPreco(v: number | null): Filtros["preco"] | null {
   if (v == null) return null;
@@ -137,6 +165,7 @@ export const ROTULO_PRECO: Record<NonNullable<Filtros["preco"]>, string> = {
 };
 
 export async function listar(f: Filtros): Promise<ResultadoBusca> {
+  const TODOS = await todos();
   const filtrados = aplicar(TODOS, f);
   const ordem = f.ordem ?? "maior";
   filtrados.sort((a, b) => {
@@ -165,6 +194,6 @@ export async function listar(f: Filtros): Promise<ResultadoBusca> {
   };
 }
 
-export function totalGeral() {
-  return TODOS.length;
+export async function totalGeral() {
+  return (await todos()).length;
 }
