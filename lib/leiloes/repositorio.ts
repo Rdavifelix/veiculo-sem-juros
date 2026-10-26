@@ -80,13 +80,16 @@ export function paraVitrine(l: Leilao): LeilaoVitrine {
     valorDe,
     descontoPct,
     parcelavel: l.tipo === "judicial",
+    praca1: (l.raw.praca_1 as string | undefined) ?? null,
+    praca2: (l.raw.praca_2 as string | undefined) ?? null,
   };
 }
 
 // Lotes já encerrados saem da vitrine (a view já filtra `status = 'ativo'`; a data garante o resto).
+// Fora da vitrine: encerrados e o que não é veículo (imóveis que as fontes marcam como "Carros & Motos").
 function soAbertos(itens: Leilao[]): LeilaoVitrine[] {
   const agora = new Date();
-  return itens.map(paraVitrine).filter((l) => !l.encerra_em || new Date(l.encerra_em) > agora);
+  return itens.map(paraVitrine).filter((l) => l.categoria !== "outro" && (!l.encerra_em || new Date(l.encerra_em) > agora));
 }
 
 const SEMENTE: LeilaoVitrine[] = soAbertos(semente as Leilao[]);

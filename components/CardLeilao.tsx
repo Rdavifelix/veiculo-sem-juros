@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { LeilaoVitrine } from "@/lib/leiloes/tipos";
-import { capitalizarTitulo, formatarDataHora, formatarMilhar, formatarReais, partesReais, rotuloEncerramento } from "@/lib/formatar";
+import { capitalizarTitulo, formatarDataCurta, formatarDataHora, formatarMilhar, formatarReais, partesReais, rotuloEncerramento } from "@/lib/formatar";
 
 /**
  * Card no padrão da página de ofertas do site de referência.
@@ -25,7 +25,7 @@ export function CardLeilao({
   const foto = l.fotos[0];
   const titulo = capitalizarTitulo(l.titulo);
   const local = [l.cidade, l.uf].filter(Boolean).join(" · ");
-  const href = logado ? `/leilao/${l.id}/acessar` : `/login?leilao=${encodeURIComponent(l.id)}`;
+  const href = desbloqueado ? `/leilao/${l.id}` : logado ? `/leilao/${l.id}/acessar` : `/login?leilao=${encodeURIComponent(l.id)}`;
 
   return (
     <article className="flex flex-col overflow-hidden rounded-md bg-white shadow-[0_1px_2px_rgba(0,0,0,.12)] transition-shadow hover:shadow-[0_7px_16px_rgba(0,0,0,.2)]">
@@ -78,7 +78,6 @@ export function CardLeilao({
               <path d="M8 10V7a4 4 0 0 1 8 0v3" />
             </svg>
             <span className="font-semibold tracking-wider text-neutral-400">LEILOEIRO OCULTO</span>
-            {l.comitente && <span> · vende {l.comitente}</span>}
           </p>
         )}
         <p className="mt-1 text-xs text-neutral-500">
@@ -90,18 +89,43 @@ export function CardLeilao({
         </p>
 
         <div className="mt-3">
-          {l.valorDe && <p className="text-xs text-neutral-500 line-through">1ª praça {formatarReais(l.valorDe)}</p>}
-          <p className="flex flex-wrap items-baseline gap-2">
-            {l.valor != null ? <Preco valor={l.valor} /> : <span className="text-lg font-semibold text-neutral-700">Lance a definir</span>}
-            {l.descontoPct ? <span className="rounded-sm bg-[var(--verde)] px-1.5 py-0.5 text-sm font-semibold text-white">{l.descontoPct}% OFF</span> : null}
-          </p>
-          <p className="text-xs text-neutral-600">{l.lance_atual != null ? "lance atual" : l.lance_2 != null ? "2ª praça" : "lance inicial"}</p>
+          {l.lance_1 != null && l.lance_2 != null ? (
+            // Leilão com duas praças: as duas lado a lado, a 2ª em destaque com o desconto.
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-sm border border-neutral-200 p-2">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-500">1ª praça</p>
+                <p className="text-lg font-semibold leading-tight text-neutral-700">{formatarReais(l.lance_1)}</p>
+                {l.praca1 && <p className="text-[11px] text-neutral-500">até {formatarDataCurta(l.praca1)}</p>}
+              </div>
+              <div className="rounded-sm border-2 border-[var(--verde)] bg-[var(--verde)]/5 p-2">
+                <p className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wide text-[var(--verde)]">
+                  2ª praça
+                  {l.descontoPct ? <span className="rounded-sm bg-[var(--verde)] px-1 py-px text-[10px] text-white">-{l.descontoPct}%</span> : null}
+                </p>
+                <p className="text-lg font-semibold leading-tight text-neutral-900">{formatarReais(l.lance_2)}</p>
+                {l.praca2 && <p className="text-[11px] text-neutral-600">até {formatarDataCurta(l.praca2)}</p>}
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-500">
+                {l.lance_atual != null ? "Lance atual" : l.lance_2 != null ? "2ª praça" : "Lance inicial"}
+              </p>
+              <p className="flex flex-wrap items-baseline gap-2">
+                {l.valor != null ? <Preco valor={l.valor} /> : <span className="text-lg font-semibold text-neutral-700">Lance a definir</span>}
+                {l.descontoPct ? <span className="rounded-sm bg-[var(--verde)] px-1.5 py-0.5 text-sm font-semibold text-white">{l.descontoPct}% OFF</span> : null}
+              </p>
+              {l.lance_atual != null && l.lance_1 != null && l.lance_1 !== l.lance_atual && (
+                <p className="text-xs text-neutral-500">lance inicial {formatarReais(l.lance_1)}</p>
+              )}
+            </>
+          )}
           {l.parcelavel ? (
-            <p className="mt-1 text-sm text-[var(--verde)]">
+            <p className="mt-2 text-sm text-[var(--verde)]">
               entrada de 25% e <span className="font-semibold">até 30x</span> sem juros*
             </p>
           ) : (
-            <p className="mt-1 text-sm text-neutral-600">pagamento à vista</p>
+            <p className="mt-2 text-sm text-neutral-600">pagamento à vista</p>
           )}
           {l.encerra_em && !enc.encerrado && <p className="mt-2 text-sm font-semibold text-[var(--verde)]">Encerra {formatarDataHora(l.encerra_em)}</p>}
         </div>

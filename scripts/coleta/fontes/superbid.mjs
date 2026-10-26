@@ -71,6 +71,11 @@ function mapear(o) {
     raw: {
       loja,
       leiloeiro: o.auction?.auctioneer ?? null,
+      pagina_leilao: o.auction?.id ? `https://www.superbid.net/leilao/${o.auction.id}` : null,
+      // Anexos do lote (pareceres de avaliação, laudos). O edital fica na página do leilão.
+      documentos: (p.attachments ?? [])
+        .filter((a) => a?.link && /pdf/i.test(a.contentType ?? a.link))
+        .map((a) => ({ nome: limparNome(a.originalFileName) || "Documento", url: a.link, tipo: "pdf" })),
       auction_id: o.auction?.id,
       auction: o.auction?.desc,
       praca: o.auction?.judicialPracaDescription ?? null,
@@ -91,6 +96,18 @@ function mapear(o) {
 function ehTeste(o) {
   const loja = `${o.store?.name ?? ""} ${o.manager?.name ?? ""} ${o.auction?.desc ?? ""}`;
   return /demo|teste|homolog|nws tecnologia/i.test(loja) || /^teste\b/i.test(o.product?.shortDesc ?? "");
+}
+
+// Nomes de arquivo do Superbid vêm com acentos mal codificados (UTF-8 lido como Latin-1).
+function limparNome(nome) {
+  if (!nome) return null;
+  let n = String(nome);
+  try {
+    n = decodeURIComponent(escape(n));
+  } catch {
+    /* mantém como veio */
+  }
+  return n.replace(/\.pdf$/i, "").replace(/\s+/g, " ").trim().slice(0, 80);
 }
 
 function slug(s) {

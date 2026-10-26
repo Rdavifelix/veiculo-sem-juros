@@ -97,6 +97,9 @@ function mapear(l) {
     encerra_em: parseDataBR(l.lot_date_end ?? l.auction_date_end ?? l.auction_date_init),
     fotos,
     raw: {
+      pagina_leilao: l.auction_id ? `${BASE}/leilao/${l.auction_id}` : null,
+      documentos: [], // o edital do Sodré é renderizado por JS na página do leilão; linkamos a página
+      condicoes: l.lot_rate_information ? String(l.lot_rate_information).slice(0, 1200) : null,
       comitente: l.client_name ?? null,
       leilao: l.auction_name ?? null,
       auction_id: l.auction_id,

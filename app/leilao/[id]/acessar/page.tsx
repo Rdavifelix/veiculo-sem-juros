@@ -13,7 +13,7 @@ async function confirmar(form: FormData) {
   "use server";
   const id = String(form.get("id"));
   const r = await desbloquear(id);
-  if ("url" in r) redirect(r.url);
+  if ("url" in r) redirect(`/leilao/${id}`); // ficha interna: leiloeiro, link, edital
   redirect(`/leilao/${id}/acessar?erro=${r.erro}`);
 }
 
@@ -23,12 +23,9 @@ export default async function Acessar({ params, searchParams }: { params: Promis
   const usuario = await usuarioAtual();
   if (!usuario) redirect(`/login?next=/leilao/${id}/acessar`);
 
-  // Já desbloqueado → vai direto, sem cobrar (a RPC também não cobra).
+  // Já desbloqueado → ficha interna direto, sem cobrar.
   const desbloqueados = await idsDesbloqueados();
-  if (desbloqueados.has(id)) {
-    const r = await desbloquear(id);
-    if ("url" in r) redirect(r.url);
-  }
+  if (desbloqueados.has(id)) redirect(`/leilao/${id}`);
 
   const [leilao, cart] = await Promise.all([buscarPorId(id), carteira()]);
   if (!leilao) redirect("/busca");
@@ -40,7 +37,7 @@ export default async function Acessar({ params, searchParams }: { params: Promis
         <div className="rounded-md bg-white p-6 shadow-sm">
           <h1 className="text-xl font-semibold">Acessar este leilão?</h1>
           <p className="mt-2 text-sm text-neutral-700">
-            Ao confirmar, vamos gastar <strong>1 crédito</strong> para liberar o link deste leilão para você. O link fica disponível para sempre em{" "}
+            Ao confirmar, vamos gastar <strong>1 crédito</strong> para liberar a ficha completa deste leilão: leiloeiro, link do lote, edital e documentos. Fica disponível para sempre em{" "}
             <Link href="/desbloqueados" className="text-[var(--azul)]">Desbloqueados</Link>.
           </p>
           <div className="mt-4 rounded-sm bg-neutral-50 p-3 text-sm">
@@ -48,7 +45,7 @@ export default async function Acessar({ params, searchParams }: { params: Promis
             <p className="text-neutral-600">
               {[leilao.cidade && `${leilao.cidade}/${leilao.uf ?? ""}`, leilao.valor != null && formatarReais(leilao.valor)].filter(Boolean).join(" · ")}
             </p>
-            <p className="mt-1 text-xs text-neutral-500">O nome do leiloeiro e o link do lote aparecem depois da confirmação.</p>
+            <p className="mt-1 text-xs text-neutral-500">Leiloeiro, link do lote e edital aparecem depois da confirmação.</p>
           </div>
           <p className="mt-4 text-sm text-neutral-600">
             Saldo atual: <strong>{cart.saldo}</strong> → depois: <strong>{Math.max(0, cart.saldo - 1)}</strong>

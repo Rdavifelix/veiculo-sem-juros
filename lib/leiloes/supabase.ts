@@ -81,6 +81,8 @@ export async function carregarVitrine(): Promise<Leilao[]> {
         categoria: x.categoria ?? null,
         visitas: x.visitas ?? null,
         lances: x.lances ?? null,
+        praca_1: x.praca_1 ?? null,
+        praca_2: x.praca_2 ?? null,
         sinistro: r.sinistro?.tipo ?? (x.sinistro as string | undefined) ?? null,
       },
     };

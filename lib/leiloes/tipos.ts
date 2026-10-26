@@ -41,6 +41,9 @@ export interface LeilaoVitrine extends Omit<Leilao, "fonte_url" | "raw"> {
   descontoPct: number | null;
   /** Só leilão judicial admite parcelamento (entrada 25%, até 30x). */
   parcelavel: boolean;
+  /** Datas de encerramento da 1ª e da 2ª praça, quando a fonte informa. */
+  praca1: string | null;
+  praca2: string | null;
 }
 
 export interface Filtros {

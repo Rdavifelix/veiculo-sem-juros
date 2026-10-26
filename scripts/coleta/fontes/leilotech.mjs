@@ -21,6 +21,11 @@ export async function coletar({ base, limite = 50, log = () => {} }) {
     const status = t.match(/Status\s+(\w+)/)?.[1];
     const modalidade = t.match(/Modalidade\s+(\w+)/)?.[1];
     const lotes = [...new Set([...html.matchAll(/href="(\/lote\/(\d+)\/[^"]+)"/g)].map((m) => [m[1], m[2]]))];
+    const documentos = [...new Set([...html.matchAll(/href="([^"]+\.pdf(?:\?[^"]*)?)"/gi)].map((m) => decodificarEntidades(m[1])))].map((u, i) => ({
+      nome: i === 0 ? "Edital do leilão" : `Documento ${i + 1}`,
+      url: u.startsWith("http") ? u : base + u,
+      tipo: "pdf",
+    }));
 
     for (const [loteCaminho, loteId] of lotes) {
       if (resultado.length >= limite) break;
@@ -48,7 +53,14 @@ export async function coletar({ base, limite = 50, log = () => {} }) {
           lance_1: avaliacao,
           encerra_em: parseDataBR(data),
           fotos,
-          raw: { leilao: caminho, data_leilao: data, status_leilao: status, modalidade, status_lote: lt.match(/Status\s+(\w+)/)?.[1] ?? null },
+          raw: {
+            pagina_leilao: base + caminho,
+            documentos,
+            data_leilao: data,
+            status_leilao: status,
+            modalidade,
+            status_lote: lt.match(/Status\s+(\w+)/)?.[1] ?? null,
+          },
         }),
       );
     }

@@ -60,9 +60,29 @@ export async function coletar({ base, limite = 50, detalhes = true, log = () => 
   return resultado;
 }
 
+// Edital e documentos ficam na página do LEILÃO (/leiloes/<id>), não na do lote. Memo por execução.
+const documentosPorLeilao = new Map();
+async function documentosDoLeilao(base, caminho) {
+  if (!documentosPorLeilao.has(caminho)) {
+    documentosPorLeilao.set(
+      caminho,
+      buscarTexto(base + caminho)
+        .then((html) => {
+          const urls = [...new Set([...html.matchAll(/href="([^"]+\.pdf(?:\?[^"]*)?)"/gi)].map((m) => decodificarEntidades(m[1])))];
+          return urls.map((u, i) => ({ nome: /edital/i.test(u) || i === 0 ? "Edital do leilão" : `Documento ${i + 1}`, url: u.startsWith("http") ? u : base + u, tipo: "pdf" }));
+        })
+        .catch(() => []),
+    );
+  }
+  return documentosPorLeilao.get(caminho);
+}
+
 async function lerDetalhe(url) {
   const html = await buscarTexto(url);
   const t = textoDoHtml(html);
+  const base = new URL(url).origin;
+  const leilaoCaminho = html.match(/href="(\/leiloes\/\d+)[^"]*"/)?.[1] ?? null;
+  const documentos = leilaoCaminho ? await documentosDoLeilao(base, leilaoCaminho) : [];
   const primeiro = t.match(/Primeiro leilão\s+(\d{2}\/\d{2}\/\d{4})(?:\s+a partir das\s+(\d{2}:\d{2}))?/i);
   const segundo = t.match(/Segundo leilão\s+(\d{2}\/\d{2}\/\d{4})(?:\s+a partir das\s+(\d{2}:\d{2}))?/i);
   // Na ficha, a próxima data aparece logo antes do rótulo: "Valor 1º leilão 09/11/2026 16:00 Data do leilão*".
@@ -81,6 +101,9 @@ async function lerDetalhe(url) {
     tipo: processo ? "judicial" : undefined,
     fotos: fotos.length ? fotos : undefined,
     raw: {
+      pagina_leilao: leilaoCaminho ? base + leilaoCaminho : null,
+      documentos,
+      condicoes: t.match(/Formas de pagamento\s+([\s\S]{10,1200}?)\s+Documentos/i)?.[1]?.trim() ?? null,
       processo: processo?.[1] ?? null,
       autor: processo?.[2] ?? null,
       executado: processo?.[3] ?? null,

@@ -37,7 +37,7 @@ export default async function Desbloqueados() {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="#e53935" aria-hidden>
               <path d="M12 21s-7.5-4.6-9.5-9.3C1 7.9 3.6 4.5 7 4.5c2 0 3.4 1.1 5 3 1.6-1.9 3-3 5-3 3.4 0 6 3.4 4.5 7.2C19.5 16.4 12 21 12 21z" />
             </svg>
-            {linhas.length} {linhas.length === 1 ? "leilão desbloqueado" : "leilões desbloqueados"} · abrir de novo é grátis
+            {linhas.length} {linhas.length === 1 ? "leilão desbloqueado" : "leilões desbloqueados"} · abrir a ficha de novo é grátis
           </span>
         </div>
 

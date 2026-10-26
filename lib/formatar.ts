@@ -37,6 +37,13 @@ export function formatarDataHora(iso: string | null) {
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")} às ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
+/** "13/10" */
+export function formatarDataCurta(iso: string | null) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
 export function capitalizarTitulo(s: string) {
   if (s !== s.toUpperCase() && s !== s.toLowerCase()) return s; // já tem caixa mista
   return s
