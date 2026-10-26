@@ -10,7 +10,8 @@ import { formatarDataHora, formatarReais } from "@/lib/formatar";
 import type { Analise } from "@/lib/ia/analise";
 import { buscarPorId } from "@/lib/leiloes/repositorio";
 import { createClient } from "@/lib/supabase/server";
-import { reprocessarAnalise } from "../actions";
+import { desmarcarParticipacao, marcarParticipacao, reprocessarAnalise } from "../actions";
+import { participacaoDe } from "@/lib/participacoes";
 import { BotaoImprimir } from "../BotaoImprimir";
 
 export const metadata: Metadata = { title: "Análise do leilão", robots: { index: false } };
@@ -26,14 +27,15 @@ const PROB: Record<string, string> = { alta: "alta", media: "média", baixa: "ba
 const r$ = (v: number | null | undefined) => (v == null ? "não informado" : formatarReais(v));
 const sinal = (v: number | null | undefined) => (v == null ? "não informado" : `${v < 0 ? "−" : "+"} ${formatarReais(Math.abs(v))}`);
 
-export default async function PaginaAnalise({ params }: { params: Promise<{ id: string }> }) {
+export default async function PaginaAnalise({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ participar?: string }> }) {
   const { id } = await params;
+  const { participar } = await searchParams;
   const usuario = await usuarioAtual();
   if (!usuario) redirect(`/login?next=/analises/${id}`);
   const supabase = await createClient();
   const [cart, { data: a }] = await Promise.all([carteira(), supabase.from("analyses").select("*").eq("id", id).maybeSingle()]);
   if (!a) redirect("/analises");
-  const leilao = await buscarPorId(a.auction_id as string);
+  const [leilao, participacao] = await Promise.all([buscarPorId(a.auction_id as string), participacaoDe(a.auction_id as string)]);
   const r = a.resultado as Analise | null;
 
   return (
@@ -276,6 +278,45 @@ export default async function PaginaAnalise({ params }: { params: Promise<{ id: 
               </section>
             )}
 
+            <section id="participar" className={`rounded-md border-2 bg-white p-5 shadow-sm print:hidden ${participacao ? "border-[var(--verde)]" : "border-[var(--amarelo)]"}`}>
+              {participacao ? (
+                <>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h2 className="text-base font-semibold">Você vai participar deste leilão</h2>
+                      <p className="mt-1 text-sm text-neutral-700">
+                        Está na sua <Link href="/agenda" className="font-semibold text-[var(--azul)]">Agenda</Link>
+                        {leilao?.encerra_em && <> · encerra <strong>{formatarDataHora(leilao.encerra_em)}</strong></>}
+                        {participacao.lance_maximo != null && <> · seu teto <strong className="text-[var(--verde)]">{formatarReais(participacao.lance_maximo)}</strong></>}
+                        {participacao.observacao && <> · {participacao.observacao}</>}
+                      </p>
+                    </div>
+                    <form action={desmarcarParticipacao}>
+                      <input type="hidden" name="auction_id" value={a.auction_id as string} />
+                      <input type="hidden" name="voltar" value={`/analises/${id}#participar`} />
+                      <button className="rounded-sm border border-neutral-300 px-3 py-1.5 text-sm font-semibold text-neutral-700 hover:border-red-400 hover:text-red-700">Não vou mais participar</button>
+                    </form>
+                  </div>
+                  <details className="mt-3 text-sm">
+                    <summary className="cursor-pointer font-semibold text-[var(--azul)]">Alterar teto ou observação</summary>
+                    <FormParticipar auctionId={a.auction_id as string} voltar={`/analises/${id}#participar`} lance={participacao.lance_maximo} observacao={participacao.observacao} rotulo="Salvar" />
+                  </details>
+                </>
+              ) : (
+                <>
+                  <h2 className="text-base font-semibold">Vai participar deste leilão?</h2>
+                  <p className="mt-1 text-sm text-neutral-700">
+                    Marque para ele entrar na sua Agenda com a data de encerramento{leilao?.encerra_em && <> (<strong>{formatarDataHora(leilao.encerra_em)}</strong>)</>} e o teto que você definiu.
+                    {r.lance_maximo.valor != null && <> Sugestão da análise para uso próprio: <strong className="text-[var(--verde)]">{formatarReais(r.lance_maximo.valor)}</strong>.</>}
+                  </p>
+                  {participar === "removido" && <p className="mt-2 rounded-sm bg-neutral-100 px-3 py-2 text-sm text-neutral-700">Removido da sua Agenda.</p>}
+                  {participar === "sem_desbloqueio" && <p className="mt-2 rounded-sm bg-red-50 px-3 py-2 text-sm text-red-700">Desbloqueie o leilão antes de marcar participação.</p>}
+                  {participar && !["ok", "removido", "sem_desbloqueio"].includes(participar) && <p className="mt-2 rounded-sm bg-red-50 px-3 py-2 text-sm text-red-700">Não foi possível marcar: {participar}</p>}
+                  <FormParticipar auctionId={a.auction_id as string} voltar={`/analises/${id}#participar`} lance={r.lance_maximo.valor} observacao={null} rotulo="Sim, vou participar" />
+                </>
+              )}
+            </section>
+
             <section className="rounded-md bg-white p-5 shadow-sm">
               <h2 className="text-base font-semibold">Próximos passos</h2>
               <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-neutral-700">
@@ -324,5 +365,23 @@ function Recomendacao({ titulo, rec, linhas }: { titulo: string; rec: Rec; linha
         {linhas.map(([k, v]) => <Linha key={k} rotulo={k} valor={v} />)}
       </dl>
     </div>
+  );
+}
+
+function FormParticipar({ auctionId, voltar, lance, observacao, rotulo }: { auctionId: string; voltar: string; lance: number | null; observacao: string | null; rotulo: string }) {
+  return (
+    <form action={marcarParticipacao} className="mt-3 grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)_auto] sm:items-end">
+      <input type="hidden" name="auction_id" value={auctionId} />
+      <input type="hidden" name="voltar" value={voltar} />
+      <label className="text-xs font-semibold text-neutral-600">
+        Meu lance máximo (R$)
+        <input name="lance_maximo" inputMode="decimal" defaultValue={lance != null ? Math.round(lance).toLocaleString("pt-BR") : ""} placeholder="ex.: 66.000" className="mt-1 h-11 w-full rounded-sm border border-neutral-300 px-3 text-sm font-medium text-neutral-900" />
+      </label>
+      <label className="text-xs font-semibold text-neutral-600">
+        Observação (opcional)
+        <input name="observacao" defaultValue={observacao ?? ""} maxLength={140} placeholder="ex.: visitar o pátio antes; levar caução" className="mt-1 h-11 w-full rounded-sm border border-neutral-300 px-3 text-sm text-neutral-900" />
+      </label>
+      <button className="h-11 rounded-sm bg-[var(--verde)] px-5 text-sm font-semibold text-white hover:brightness-95">{rotulo}</button>
+    </form>
   );
 }

@@ -20,6 +20,7 @@ export function Cabecalho({ usuario, carteira }: { usuario?: Sessao | null; cart
               <Link href="/busca" className="hidden hover:text-black sm:inline">Busca</Link>
               <Link href="/desbloqueados" className="hidden hover:text-black sm:inline">Desbloqueados</Link>
               <Link href="/analises" className="hidden hover:text-black sm:inline">Análises</Link>
+              <Link href="/agenda" className="hidden hover:text-black sm:inline">Agenda</Link>
               {carteira?.admin && <Link href="/admin" className="hidden font-semibold hover:text-black sm:inline">Admin</Link>}
               {carteira && (
                 <span className="flex items-center gap-1.5">
@@ -47,10 +48,11 @@ export function Cabecalho({ usuario, carteira }: { usuario?: Sessao | null; cart
         </nav>
       </div>
       {usuario && (
-        <nav className="mx-auto flex max-w-[1200px] gap-5 px-4 pb-2 text-sm sm:hidden" aria-label="Seções">
+        <nav className="mx-auto flex max-w-[1200px] flex-wrap gap-x-5 gap-y-1 px-4 pb-2 text-sm sm:hidden" aria-label="Seções">
           <Link href="/busca" className="font-semibold">Busca</Link>
           <Link href="/desbloqueados" className="font-semibold">Desbloqueados</Link>
           <Link href="/analises" className="font-semibold">Análises</Link>
+          <Link href="/agenda" className="font-semibold">Agenda</Link>
           {carteira?.admin && <Link href="/admin" className="font-semibold">Admin</Link>}
           <span className="ml-auto text-neutral-700">Olá, {usuario.nome.split(" ")[0]}</span>
         </nav>

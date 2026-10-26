@@ -79,6 +79,12 @@ deploy com o `crmxpn` (CRM XPN). Nada daquele repositório vale aqui, exceto as 
   detecta edital sem parcelamento (alienação antecipada criminal, "à vista") → `parcelavel=false` mesmo em judicial.
   Análise manual 79031148 (Discovery Sport) atualizada com os campos novos via SQL.
 
+- 26/10/2026 (tarde): **participação e Agenda.** Tabela `participacoes` (migração 000500; RLS: só o dono, e insert
+  exige `unlocks` do lote). Ao fim da análise, bloco "Vai participar deste leilão?" com teto (pré-preenchido com o lance
+  máximo da IA) e observação; Server Actions `marcarParticipacao`/`desmarcarParticipacao` em `app/analises/actions.ts`
+  (`lib/participacoes.ts`). `/agenda` (Premium/admin): calendário mensal (`?m=AAAA-MM`) com os encerramentos marcados,
+  lista dos próximos com teto, link "Google Agenda" e Remover. Link "Agenda" no cabeçalho.
+
 ## Front end
 - Paleta em `app/globals.css` (`--amarelo`, `--azul`, `--verde`, `--laranja`, `--fundo`). Sem dark mode por ora.
 - `LeilaoVitrine` (lib/leiloes/tipos.ts) **não tem `fonte_url`**: o link do leiloeiro só sai via desbloqueio.
@@ -88,6 +94,8 @@ deploy com o `crmxpn` (CRM XPN). Nada daquele repositório vale aqui, exceto as 
   Senha nunca no repositório nem no chat; preferir enviar link de redefinição (`/login/esqueci`).
 - Imagens de terceiros com `next/image unoptimized` e `remotePatterns: **`.
 - Galeria da ficha é Client Component (`app/leilao/[id]/Galeria.tsx`): setas, miniaturas, ← → e arrastar; foto nunca abre em outra aba.
+- Redirect de Server Action para a mesma rota mudando só o `#hash` **não recarrega** a página: coloque a query antes
+  do hash (`/rota?x=1#secao`) e chame `revalidatePath`.
 - Cache da vitrine é em memória do processo (5 min) — **não** usar `unstable_cache` (limite de 2 MB por entrada).
 - Dados: `lib/leiloes/supabase.ts` lê `auctions_vitrine` (anon só enxerga a view; `fonte_url` e `raw` completo
   nunca saem). Carga/atualização de lotes é só com service role (job) ou via MCP `execute_sql`.
