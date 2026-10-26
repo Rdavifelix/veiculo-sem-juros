@@ -2,7 +2,10 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import type { Leilao, TipoLeilao } from "./tipos";
 
-/** Linha da view pública `auctions_vitrine` (sem `fonte_url` e sem `raw` completo). */
+/** Colunas da view pública `auctions_vitrine` que a vitrine usa (sem `fonte_url`; `extras` é o raw podado). */
+const COLUNAS =
+  "id,fonte,external_id,titulo,descricao,marca,modelo,ano,cidade,uf,tipo,lance_1,lance_2,lance_atual,encerra_em,fotos,sinistro,extras";
+
 interface LinhaVitrine {
   id: string;
   fonte: string;
@@ -42,33 +45,44 @@ export async function carregarVitrine(): Promise<Leilao[]> {
   for (let de = 0; ; de += pagina) {
     const { data, error } = await sb
       .from("auctions_vitrine")
-      .select("*")
+      .select(COLUNAS)
       .or(`encerra_em.is.null,encerra_em.gte.${new Date().toISOString()}`)
       .order("encerra_em", { ascending: true })
       .range(de, de + pagina - 1);
     if (error) throw new Error(`auctions_vitrine: ${error.message}`);
-    linhas.push(...((data ?? []) as LinhaVitrine[]));
+    linhas.push(...((data ?? []) as unknown as LinhaVitrine[]));
     if (!data || data.length < pagina) break;
   }
   const num = (v: number | string | null) => (v == null ? null : Number(v));
-  return linhas.map((r) => ({
-    id: r.id,
-    fonte: r.fonte,
-    fonte_url: "", // nunca vem da view
-    external_id: r.external_id,
-    titulo: r.titulo,
-    descricao: r.descricao,
-    marca: r.marca,
-    modelo: r.modelo,
-    ano: r.ano,
-    cidade: r.cidade,
-    uf: r.uf,
-    tipo: r.tipo,
-    lance_1: num(r.lance_1),
-    lance_2: num(r.lance_2),
-    lance_atual: num(r.lance_atual),
-    encerra_em: r.encerra_em,
-    fotos: r.fotos ?? [],
-    raw: { ...(r.extras ?? {}), sinistro: r.sinistro?.tipo ?? (r.extras?.sinistro as string | undefined) ?? null },
-  }));
+  return linhas.map((r) => {
+    const x = r.extras ?? {};
+    return {
+      id: r.id,
+      fonte: r.fonte,
+      fonte_url: "", // nunca vem da view
+      external_id: r.external_id,
+      titulo: r.titulo,
+      descricao: r.descricao ? r.descricao.slice(0, 400) : null,
+      marca: r.marca,
+      modelo: r.modelo,
+      ano: r.ano,
+      cidade: r.cidade,
+      uf: r.uf,
+      tipo: r.tipo,
+      lance_1: num(r.lance_1),
+      lance_2: num(r.lance_2),
+      lance_atual: num(r.lance_atual),
+      encerra_em: r.encerra_em,
+      fotos: (r.fotos ?? []).slice(0, 1), // a vitrine mostra só a capa
+      // Só o que a vitrine usa; o raw completo fica no banco.
+      raw: {
+        loja: x.loja ?? null,
+        comitente: x.comitente ?? null,
+        categoria: x.categoria ?? null,
+        visitas: x.visitas ?? null,
+        lances: x.lances ?? null,
+        sinistro: r.sinistro?.tipo ?? (x.sinistro as string | undefined) ?? null,
+      },
+    };
+  });
 }

@@ -1,5 +1,4 @@
 import "server-only";
-import { unstable_cache } from "next/cache";
 import semente from "@/data/seed/leiloes.json";
 import { carregarVitrine, supabaseConfigurado } from "./supabase";
 import type { Categoria, Faceta, Filtros, Leilao, LeilaoVitrine, ResultadoBusca, TipoLeilao } from "./tipos";
@@ -10,6 +9,8 @@ import type { Categoria, Faceta, Filtros, Leilao, LeilaoVitrine, ResultadoBusca,
  * mantém `npm run dev` funcionando sem banco. Os filtros e facetas são calculados em memória.
  */
 const POR_PAGINA = 24;
+/** O modelo limita cada busca a 200 veículos. */
+export const MAX_RESULTADOS_BUSCA = 200;
 
 const NOMES_FONTE: Record<string, string> = {
   sodresantoro: "Sodré Santoro",
@@ -88,25 +89,29 @@ function soAbertos(itens: Leilao[]): LeilaoVitrine[] {
 
 const SEMENTE: LeilaoVitrine[] = soAbertos(semente as Leilao[]);
 
-// Cache de 5 min por processo: a vitrine muda só quando o job de coleta roda.
-const carregarDoBanco = unstable_cache(
-  async () => {
-    const itens = await carregarVitrine();
-    return itens.length ? itens : null;
-  },
-  ["auctions_vitrine"],
-  { revalidate: 300 },
-);
+// Cache em memória do processo (5 min): a vitrine só muda quando o job de coleta roda. Não usamos o
+// `unstable_cache` do Next porque ele limita cada entrada a 2 MB e a base passa disso.
+const TTL_MS = 5 * 60_000;
+let cache: { itens: LeilaoVitrine[]; em: number } | null = null;
+let carregando: Promise<LeilaoVitrine[]> | null = null;
 
 async function todos(): Promise<LeilaoVitrine[]> {
   if (!supabaseConfigurado()) return SEMENTE;
-  try {
-    const itens = await carregarDoBanco();
-    return itens ? soAbertos(itens) : SEMENTE;
-  } catch (e) {
-    console.error("[vitrine] falha ao ler o Supabase, usando semente:", e);
-    return SEMENTE;
-  }
+  if (cache && Date.now() - cache.em < TTL_MS) return cache.itens;
+  carregando ??= carregarVitrine()
+    .then((itens) => {
+      const abertos = soAbertos(itens);
+      if (abertos.length) cache = { itens: abertos, em: Date.now() };
+      return cache?.itens ?? SEMENTE;
+    })
+    .catch((e) => {
+      console.error("[vitrine] falha ao ler o Supabase:", e);
+      return cache?.itens ?? SEMENTE;
+    })
+    .finally(() => {
+      carregando = null;
+    });
+  return carregando;
 }
 
 function faixaPreco(v: number | null): Filtros["preco"] | null {
@@ -164,9 +169,9 @@ export const ROTULO_PRECO: Record<NonNullable<Filtros["preco"]>, string> = {
   acima100: "Acima de R$ 100 mil",
 };
 
-export async function listar(f: Filtros): Promise<ResultadoBusca> {
+export async function listar(f: Filtros, opcoes: { maximo?: number } = {}): Promise<ResultadoBusca> {
   const TODOS = await todos();
-  const filtrados = aplicar(TODOS, f);
+  let filtrados = aplicar(TODOS, f);
   const ordem = f.ordem ?? "maior";
   filtrados.sort((a, b) => {
     if (ordem === "encerra") return (a.encerra_em ?? "9").localeCompare(b.encerra_em ?? "9");
@@ -174,6 +179,7 @@ export async function listar(f: Filtros): Promise<ResultadoBusca> {
     const vb = b.valor ?? 0;
     return ordem === "menor" ? va - vb : vb - va;
   });
+  if (opcoes.maximo && filtrados.length > opcoes.maximo) filtrados = filtrados.slice(0, opcoes.maximo);
   const totalPaginas = Math.max(1, Math.ceil(filtrados.length / POR_PAGINA));
   const pagina = Math.min(Math.max(1, f.pagina ?? 1), totalPaginas);
   const ordemPreco: NonNullable<Filtros["preco"]>[] = ["ate20", "20a50", "50a100", "acima100"];
@@ -196,4 +202,16 @@ export async function listar(f: Filtros): Promise<ResultadoBusca> {
 
 export async function totalGeral() {
   return (await todos()).length;
+}
+
+export async function buscarPorId(id: string): Promise<LeilaoVitrine | null> {
+  return (await todos()).find((l) => l.id === id) ?? null;
+}
+
+/** Destaques da home pública: maiores valores com foto, metade judiciais quando houver. */
+export async function destaques(n = 12): Promise<LeilaoVitrine[]> {
+  const comFoto = (await todos()).filter((l) => l.fotos.length && l.valor);
+  const judiciais = comFoto.filter((l) => l.tipo === "judicial").sort((a, b) => (b.valor ?? 0) - (a.valor ?? 0)).slice(0, Math.ceil(n / 2));
+  const resto = comFoto.filter((l) => !judiciais.includes(l)).sort((a, b) => (b.valor ?? 0) - (a.valor ?? 0));
+  return [...judiciais, ...resto].slice(0, n);
 }

@@ -1,120 +1,106 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AbasCategorias } from "@/components/AbasCategorias";
+import { redirect } from "next/navigation";
 import { Cabecalho } from "@/components/Cabecalho";
 import { CardLeilao } from "@/components/CardLeilao";
-import { FiltrosLaterais } from "@/components/FiltrosLaterais";
 import { Rodape } from "@/components/Rodape";
-import { listar, ROTULO_CATEGORIA, ROTULO_TIPO } from "@/lib/leiloes/repositorio";
-import type { Categoria, Filtros, TipoLeilao } from "@/lib/leiloes/tipos";
+import { usuarioAtual } from "@/lib/auth";
+import { destaques, totalGeral } from "@/lib/leiloes/repositorio";
 
-type Params = Record<string, string | string[] | undefined>;
+export const metadata: Metadata = {
+  title: "Leilões de veículos com parcelamento em até 30x",
+  description:
+    "Buscador de leilões de veículos judiciais e de bancos e seguradoras. Carros, motos e caminhões com entrada de 25% e até 30 parcelas sem juros.",
+};
 
-function lerFiltros(sp: Params): Filtros {
-  const um = (k: string) => (Array.isArray(sp[k]) ? sp[k]?.[0] : sp[k]) as string | undefined;
-  const tipo = um("tipo");
-  const categoria = um("categoria");
-  const preco = um("preco");
-  const encerra = um("encerra");
-  const ordem = um("ordem");
-  return {
-    q: um("q") || undefined,
-    tipo: tipo && tipo in ROTULO_TIPO ? (tipo as TipoLeilao) : undefined,
-    categoria: categoria && categoria in ROTULO_CATEGORIA ? (categoria as Categoria) : undefined,
-    uf: um("uf")?.toUpperCase().slice(0, 2) || undefined,
-    marca: um("marca") || undefined,
-    preco: preco && ["ate20", "20a50", "50a100", "acima100"].includes(preco) ? (preco as Filtros["preco"]) : undefined,
-    encerra: encerra === "hoje" || encerra === "7dias" ? encerra : undefined,
-    ordem: ordem === "menor" || ordem === "encerra" ? ordem : "maior",
-    pagina: Math.max(1, Number(um("pagina") ?? 1) || 1),
-  };
-}
+const FAQ = [
+  ["O Veículo Sem Juros é um leilão?", "Não. Somos um buscador: reunimos lotes de leiloeiros oficiais de todo o Brasil e analisamos as oportunidades. O lance é dado no site do leiloeiro."],
+  ["Como funciona o parcelamento sem juros?", "Só leilão judicial admite parcelamento: entrada de 25% e até 30 parcelas, com correção pelo índice do tribunal. Filtre por “Parcela em até 30x” para ver só esses."],
+  ["O que são os créditos?", "Cada busca com resultado e cada link de leilão desbloqueado consome 1 crédito. Busca sem resultado e reabrir um link já desbloqueado são grátis. Créditos não expiram."],
+  ["Como tenho acesso?", "O acesso é liberado após a compra do plano. Fale com a gente no WhatsApp e receba seu login por e-mail."],
+];
 
-export async function generateMetadata({ searchParams }: { searchParams: Promise<Params> }): Promise<Metadata> {
-  const f = lerFiltros(await searchParams);
-  const partes = [f.q, f.marca, f.categoria && ROTULO_CATEGORIA[f.categoria], f.tipo && `leilão ${ROTULO_TIPO[f.tipo].toLowerCase()}`, f.uf].filter(Boolean);
-  return {
-    title: partes.length ? `Leilões de veículos: ${partes.join(", ")}` : "Leilões de veículos com parcelamento",
-    description: "Buscador de leilões de veículos judiciais e extrajudiciais. Encontre carros, motos e caminhões com entrada de 25% e até 30 parcelas.",
-  };
-}
-
-export default async function Home({ searchParams }: { searchParams: Promise<Params> }) {
-  const filtros = lerFiltros(await searchParams);
-  const resultado = await listar(filtros);
-
-  const hrefPagina = (n: number) => {
-    const p = new URLSearchParams();
-    for (const [k, v] of Object.entries(filtros)) if (v !== undefined && k !== "pagina" && !(k === "ordem" && v === "maior")) p.set(k, String(v));
-    if (n > 1) p.set("pagina", String(n));
-    const qs = p.toString();
-    return qs ? `/?${qs}` : "/";
-  };
-  const hrefOrdem = (o: NonNullable<Filtros["ordem"]>) => {
-    const p = new URLSearchParams();
-    for (const [k, v] of Object.entries({ ...filtros, ordem: o, pagina: undefined })) if (v !== undefined && !(k === "ordem" && v === "maior")) p.set(k, String(v));
-    const qs = p.toString();
-    return qs ? `/?${qs}` : "/";
-  };
+export default async function Home() {
+  if (await usuarioAtual()) redirect("/busca");
+  const [itens, total] = await Promise.all([destaques(12), totalGeral()]);
 
   return (
     <>
-      <Cabecalho busca={filtros.q} />
-      <AbasCategorias filtros={filtros} />
-      <main className="mx-auto flex max-w-[1200px] flex-col gap-8 px-4 py-8 lg:flex-row">
-        <FiltrosLaterais resultado={resultado} filtros={filtros} />
-
-        <section className="flex-1">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-sm text-neutral-600">
-            <span>
-              {resultado.total.toLocaleString("pt-BR")} leilões encontrados
-              {resultado.totalPaginas > 1 && ` · página ${resultado.pagina} de ${resultado.totalPaginas}`}
-            </span>
-            <span className="flex items-center gap-3">
-              Ordenar por
-              {(
-                [
-                  ["maior", "Maior lance"],
-                  ["menor", "Menor lance"],
-                  ["encerra", "Encerra antes"],
-                ] as const
-              ).map(([o, r]) => (
-                <Link key={o} href={hrefOrdem(o)} className={filtros.ordem === o ? "font-semibold text-[var(--azul)]" : "hover:text-neutral-900"}>
-                  {r}
-                </Link>
-              ))}
-            </span>
+      <Cabecalho />
+      <section className="bg-white">
+        <div className="mx-auto grid max-w-[1200px] gap-8 px-4 py-14 md:grid-cols-[1.2fr_1fr] md:items-center">
+          <div>
+            <h1 className="text-4xl font-bold leading-tight tracking-tight md:text-5xl">
+              O carro do leilão, <span className="text-[var(--azul)]">parcelado em até 30x</span>
+            </h1>
+            <p className="mt-4 max-w-xl text-lg text-neutral-600">
+              Reunimos {total.toLocaleString("pt-BR")} leilões ativos de leiloeiros oficiais, bancos e seguradoras num só lugar, com análise de cada oportunidade e o filtro que importa: quais aceitam entrada de 25% e parcelamento.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link href="/login" className="rounded-sm bg-[var(--azul)] px-6 py-3 font-semibold text-white hover:bg-[#2968c8]">Comece agora</Link>
+              <a href="#como-funciona" className="rounded-sm border border-neutral-300 px-6 py-3 font-semibold text-neutral-700 hover:bg-neutral-50">Como funciona</a>
+            </div>
           </div>
+          <ul className="grid gap-3 text-sm">
+            {[
+              ["🔎", "Busca unificada", "Marca, estado, preço, tipo de leilão e data em um clique."],
+              ["⚡", "Encerra hoje", "Veja o que fecha nas próximas horas e não perca o lance."],
+              ["🏷️", "1ª e 2ª praça", "Desconto real sobre a avaliação, direto no card."],
+              ["🔒", "Link do leiloeiro", "Desbloqueie com 1 crédito e fica seu para sempre."],
+            ].map(([icone, titulo, texto]) => (
+              <li key={titulo} className="flex gap-3 rounded-md border border-neutral-200 p-4">
+                <span className="text-xl" aria-hidden>{icone}</span>
+                <div>
+                  <p className="font-semibold">{titulo}</p>
+                  <p className="text-neutral-600">{texto}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
 
-          {resultado.itens.length ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {resultado.itens.map((l) => (
-                <CardLeilao key={l.id} leilao={l} />
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-md bg-white p-10 text-center shadow-sm">
-              <p className="text-lg font-semibold">Nenhum leilão com esses filtros</p>
-              <p className="mt-1 text-sm text-neutral-600">Tente remover um filtro ou buscar por outro termo.</p>
-              <Link href="/" className="mt-4 inline-block text-sm font-semibold text-[var(--azul)]">Ver todos os leilões</Link>
-            </div>
-          )}
+      <main className="mx-auto max-w-[1200px] px-4 py-10">
+        <div className="mb-4 flex items-end justify-between">
+          <h2 className="text-2xl font-semibold">Leilões de veículo em destaque</h2>
+          <Link href="/login" className="text-sm font-semibold text-[var(--azul)]">Ver todos →</Link>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {itens.map((l) => (
+            <CardLeilao key={l.id} leilao={l} />
+          ))}
+        </div>
 
-          {resultado.totalPaginas > 1 && (
-            <nav className="mt-8 flex items-center justify-center gap-2 text-sm" aria-label="Paginação">
-              {resultado.pagina > 1 && <Link href={hrefPagina(resultado.pagina - 1)} className="rounded-sm px-3 py-1.5 text-[var(--azul)] hover:bg-white">‹ Anterior</Link>}
-              {Array.from({ length: resultado.totalPaginas }, (_, i) => i + 1).map((n) => (
-                <Link key={n} href={hrefPagina(n)} className={`rounded-sm px-3 py-1.5 ${n === resultado.pagina ? "bg-white font-semibold shadow-sm" : "text-neutral-700 hover:bg-white"}`}>
-                  {n}
-                </Link>
-              ))}
-              {resultado.pagina < resultado.totalPaginas && <Link href={hrefPagina(resultado.pagina + 1)} className="rounded-sm px-3 py-1.5 text-[var(--azul)] hover:bg-white">Seguinte ›</Link>}
-            </nav>
-          )}
+        <section id="como-funciona" className="mt-14 rounded-md bg-white p-8 shadow-sm">
+          <h2 className="text-2xl font-semibold">Solicite análise de qualquer leilão</h2>
+          <div className="mt-6 grid gap-6 md:grid-cols-3">
+            {[
+              ["1", "Encontre", "Busque por modelo ou filtre por marca, estado, preço e data. Cada busca com resultado usa 1 crédito."],
+              ["2", "Desbloqueie", "Gaste 1 crédito para abrir o link do leiloeiro. O link fica guardado em Desbloqueados."],
+              ["3", "Analise", "Peça a análise do lote: valores, praças, processo, débitos e condições de pagamento."],
+            ].map(([n, t, d]) => (
+              <div key={n}>
+                <span className="grid h-9 w-9 place-items-center rounded-full bg-[var(--azul)] font-bold text-white">{n}</span>
+                <p className="mt-3 font-semibold">{t}</p>
+                <p className="mt-1 text-sm text-neutral-600">{d}</p>
+              </div>
+            ))}
+          </div>
+        </section>
 
-          <p className="mt-10 rounded-md bg-white p-5 text-center text-sm text-neutral-600 shadow-sm">
-            Não encontrou o leilão que procurava? <span className="font-semibold text-[var(--azul)]">Avise a gente</span>
-          </p>
+        <section className="mt-14">
+          <h2 className="text-2xl font-semibold">Perguntas frequentes</h2>
+          <div className="mt-4 divide-y divide-neutral-200 rounded-md bg-white shadow-sm">
+            {FAQ.map(([p, r]) => (
+              <details key={p} className="group px-5 py-4">
+                <summary className="flex cursor-pointer items-center justify-between font-medium">
+                  {p}
+                  <span className="text-neutral-400 transition-transform group-open:rotate-45" aria-hidden>+</span>
+                </summary>
+                <p className="mt-2 text-sm text-neutral-600">{r}</p>
+              </details>
+            ))}
+          </div>
         </section>
       </main>
       <Rodape />

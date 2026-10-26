@@ -49,12 +49,24 @@ deploy com o `crmxpn` (CRM XPN). Nada daquele repositório vale aqui, exceto as 
   Testado localmente com `--sem-gravar`. **Falta o dono cadastrar o secret `SUPABASE_SERVICE_ROLE_KEY`** no
   repositório para a primeira execução gravar.
 
+- 26/10/2026 (noite): **auth + créditos + busca paga.** Supabase Auth (e-mail/senha; `proxy.ts` renova sessão;
+  `lib/auth.ts`), tabelas `profiles`, `unlocks`, `credit_ledger`, `searches` e RPCs `registrar_busca`,
+  `desbloquear_leilao`, `saldo_creditos`, `cota_buscas`, `conceder_creditos` (migrações 000200 e 000300).
+  Regra toda no banco: 1 crédito por busca com resultado e por link desbloqueado; grátis sem resultado,
+  reabrir e paginar. `/` virou home pública (hero + destaques + FAQ); `/busca` (logado) tem a barra do modelo
+  (`BarraBusca`: campo + Buscar + chips + cota N/20) e só mostra resultados de uma busca paga (`?s=<id>`);
+  `/leilao/[id]/acessar` é a confirmação de 1 crédito; `/desbloqueados` lista os links. Primeiro usuário criado
+  via SQL (auth.users + identities) com 20 créditos de bônus. Sem cadastro público, sem checkout ainda.
+
 ## Front end
 - Paleta em `app/globals.css` (`--amarelo`, `--azul`, `--verde`, `--laranja`, `--fundo`). Sem dark mode por ora.
 - `LeilaoVitrine` (lib/leiloes/tipos.ts) **não tem `fonte_url`**: o link do leiloeiro só sai via desbloqueio.
-- Filtros são links (`FiltrosLaterais`, `AbasCategorias`) — sem estado no cliente; facetas calculadas ignorando o
-  próprio filtro para a contagem fazer sentido.
+- Busca é um `<form>` POST para a Server Action `buscar` (cobra) que redireciona para GET com `?s=`; GET nunca
+  cobra. Paginação/ordenação preservam `s`. Facetas de marca vêm de `listar({}, {maximo: 1})`.
+- Criar usuário: `insert into auth.users/auth.identities` (ver histórico no MCP) + `conceder_creditos(id, n, 'bonus')`.
+  Senha nunca no repositório nem no chat; preferir enviar link de redefinição (`/login/esqueci`).
 - Imagens de terceiros com `next/image unoptimized` e `remotePatterns: **`.
+- Cache da vitrine é em memória do processo (5 min) — **não** usar `unstable_cache` (limite de 2 MB por entrada).
 - Dados: `lib/leiloes/supabase.ts` lê `auctions_vitrine` (anon só enxerga a view; `fonte_url` e `raw` completo
   nunca saem). Carga/atualização de lotes é só com service role (job) ou via MCP `execute_sql`.
 - **O repositório GitHub é público**: nada sensível em `data/seed` além de dados já públicos nos leiloeiros.

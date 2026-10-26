@@ -3,11 +3,17 @@ import Link from "next/link";
 import type { LeilaoVitrine } from "@/lib/leiloes/tipos";
 import { capitalizarTitulo, formatarDataHora, formatarMilhar, formatarReais, partesReais, rotuloEncerramento } from "@/lib/formatar";
 
-export function CardLeilao({ leilao: l }: { leilao: LeilaoVitrine }) {
+/**
+ * Card no padrão da página de ofertas do site de referência.
+ * `logado` + `desbloqueado` decidem o botão: visitante → login; logado → confirmação de 1 crédito;
+ * já desbloqueado → vai direto ao leiloeiro (grátis).
+ */
+export function CardLeilao({ leilao: l, logado = false, desbloqueado = false }: { leilao: LeilaoVitrine; logado?: boolean; desbloqueado?: boolean }) {
   const enc = rotuloEncerramento(l.encerra_em);
   const foto = l.fotos[0];
   const titulo = capitalizarTitulo(l.titulo);
   const local = [l.cidade, l.uf].filter(Boolean).join(" · ");
+  const href = logado ? `/leilao/${l.id}/acessar` : `/login?leilao=${encodeURIComponent(l.id)}`;
 
   return (
     <article className="flex flex-col overflow-hidden rounded-md bg-white shadow-[0_1px_2px_rgba(0,0,0,.12)] transition-shadow hover:shadow-[0_7px_16px_rgba(0,0,0,.2)]">
@@ -54,18 +60,10 @@ export function CardLeilao({ leilao: l }: { leilao: LeilaoVitrine }) {
         <div className="mt-3">
           {l.valorDe && <p className="text-xs text-neutral-500 line-through">1ª praça {formatarReais(l.valorDe)}</p>}
           <p className="flex flex-wrap items-baseline gap-2">
-            {l.valor != null ? (
-              <Preco valor={l.valor} />
-            ) : (
-              <span className="text-lg font-semibold text-neutral-700">Lance a definir</span>
-            )}
-            {l.descontoPct ? (
-              <span className="rounded-sm bg-[var(--verde)] px-1.5 py-0.5 text-sm font-semibold text-white">{l.descontoPct}% OFF</span>
-            ) : null}
+            {l.valor != null ? <Preco valor={l.valor} /> : <span className="text-lg font-semibold text-neutral-700">Lance a definir</span>}
+            {l.descontoPct ? <span className="rounded-sm bg-[var(--verde)] px-1.5 py-0.5 text-sm font-semibold text-white">{l.descontoPct}% OFF</span> : null}
           </p>
-          <p className="text-xs text-neutral-600">
-            {l.lance_atual != null ? "lance atual" : l.lance_2 != null ? "2ª praça" : "lance inicial"}
-          </p>
+          <p className="text-xs text-neutral-600">{l.lance_atual != null ? "lance atual" : l.lance_2 != null ? "2ª praça" : "lance inicial"}</p>
           {l.parcelavel ? (
             <p className="mt-1 text-sm text-[var(--verde)]">
               entrada de 25% e <span className="font-semibold">até 30x</span> sem juros*
@@ -73,21 +71,32 @@ export function CardLeilao({ leilao: l }: { leilao: LeilaoVitrine }) {
           ) : (
             <p className="mt-1 text-sm text-neutral-600">pagamento à vista</p>
           )}
-          {l.encerra_em && !enc.encerrado && (
-            <p className="mt-2 text-sm font-semibold text-[var(--verde)]">Encerra {formatarDataHora(l.encerra_em)}</p>
-          )}
+          {l.encerra_em && !enc.encerrado && <p className="mt-2 text-sm font-semibold text-[var(--verde)]">Encerra {formatarDataHora(l.encerra_em)}</p>}
         </div>
 
         <Link
-          href={`/login?leilao=${encodeURIComponent(l.id)}`}
-          className="mt-auto flex items-center justify-center gap-2 rounded-sm border border-[var(--azul)] py-2 pt-2 text-sm font-semibold text-[var(--azul)] hover:bg-[var(--azul)]/5"
-          style={{ marginTop: "0.9rem" }}
+          href={href}
+          className={`mt-4 flex items-center justify-center gap-2 rounded-sm border py-2 text-sm font-semibold ${
+            desbloqueado ? "border-[var(--verde)] text-[var(--verde)] hover:bg-[var(--verde)]/5" : "border-[var(--azul)] text-[var(--azul)] hover:bg-[var(--azul)]/5"
+          }`}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
-            <rect x="4" y="10" width="16" height="11" rx="2" />
-            <path d="M8 10V7a4 4 0 0 1 8 0v3" />
-          </svg>
-          Acessar leilão
+          {desbloqueado ? (
+            <>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+                <rect x="4" y="10" width="16" height="11" rx="2" />
+                <path d="M8 10V7a4 4 0 0 1 7.5-2" />
+              </svg>
+              Ver leilão
+            </>
+          ) : (
+            <>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+                <rect x="4" y="10" width="16" height="11" rx="2" />
+                <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+              </svg>
+              Acessar leilão
+            </>
+          )}
         </Link>
       </div>
     </article>

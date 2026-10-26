@@ -76,8 +76,9 @@ Regras no banco: débito de crédito por RPC transacional (`gastar_credito`), un
 
 ## Fases sugeridas
 1. **Esqueleto + auth + onboarding gate + busca sobre uma base semente** + créditos/desbloqueio.
-   *Feito em 26/10:* vitrine pública `/` sobre base semente real (`data/seed/leiloes.json`), migração de
-   `fontes`/`auctions`. *Falta:* projeto Supabase, auth, gate, créditos, desbloqueio.
+   *Feito em 26/10:* projeto Supabase, coleta agendada, home pública, auth, créditos (RPCs no banco), `/busca`
+   paga com a barra do modelo, desbloqueio com confirmação, `/desbloqueados`. *Falta:* gate de onboarding,
+   compra de créditos (checkout), "Como usar".
 2. Oportunidade do dia (perfil + recomendação + análise).
 3. Área de membros, fórum, reportar problema.
 4. Coleta automática de leilões (protótipo pronto em `scripts/coleta/`; falta tabela `fontes`, job agendado e mais parsers).
