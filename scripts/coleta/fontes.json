@@ -1,0 +1,21 @@
+{
+  "_comentario": "Fontes que o job diário coleta. Plataformas white-label aceitam várias `bases` (um leiloeiro por linha). Para adicionar um leiloeiro, inclua a base aqui e abra PR — ver docs/FONTES.md.",
+  "fontes": [
+    { "fonte": "superbid", "limite": 4000 },
+    { "fonte": "sodresantoro", "limite": 2000 },
+    {
+      "fonte": "suporteleiloes",
+      "limite": 500,
+      "bases": ["https://www.depaulaonline.com.br"]
+    },
+    {
+      "fonte": "leilotech",
+      "limite": 500,
+      "bases": [
+        "https://arrematabem.com.br",
+        "https://tesouroleiloes.com.br",
+        "https://www.magalhaesleiloes.leilao.br"
+      ]
+    }
+  ]
+}

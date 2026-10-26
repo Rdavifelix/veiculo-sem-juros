@@ -1,0 +1,43 @@
+# Coleta de leilões: roda os coletores de scripts/coleta e grava no Supabase.
+# Agendado 2x ao dia (05h e 13h de Brasília). Também pode ser disparado à mão em Actions → "Coleta de leilões".
+# Segredo necessário no repositório (Settings → Secrets and variables → Actions → New repository secret):
+#   SUPABASE_SERVICE_ROLE_KEY  — chave "service_role" do projeto veiculo-sem-juros (Supabase → Project Settings → API).
+name: Coleta de leilões
+
+on:
+  schedule:
+    - cron: "0 8 * * *"   # 05:00 BRT
+    - cron: "0 16 * * *"  # 13:00 BRT
+  workflow_dispatch:
+    inputs:
+      so:
+        description: "Coletar só esta fonte (superbid | sodresantoro | suporteleiloes | leilotech). Vazio = todas."
+        required: false
+        default: ""
+
+concurrency:
+  group: coleta
+  cancel-in-progress: false
+
+jobs:
+  coletar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      SUPABASE_URL: https://bjrjngzckbezajjrkfwb.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci --no-audit --no-fund
+
+      # Só o coletor do Sodré Santoro usa navegador (WAF).
+      - run: npx playwright install --with-deps chromium
+
+      - name: Coletar e gravar
+        run: node scripts/coleta/rodar-tudo.mjs ${{ inputs.so && format('--so={0}', inputs.so) || '' }}

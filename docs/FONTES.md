@@ -81,7 +81,12 @@ Campos fracos em todas: `marca`/`modelo` por heurística de título (Sodré e Su
 `tipo` por palavras-chave quando a fonte não marca judicial, 2ª praça só nas fontes judiciais.
 
 ## Próximos passos
-1. Tabela `fontes` + migração `auctions` com `(fonte, external_id)` único e `fonte_url` fora do `select` público.
-2. Job diário (Actions) rodando superbid + sodresantoro + lista inicial de ~20 tenants Suporte Leilões/Leilotech.
-3. Parser da versão nova do Suporte Leilões e do Grupo Lance; depois sitemaps (Zukerman, Mega, Leilões Judiciais).
+1. ~~Tabela `fontes` + migração `auctions`~~ feito em 26/10 (projeto `bjrjngzckbezajjrkfwb`, view `auctions_vitrine`).
+2. ~~Job (Actions) rodando superbid + sodresantoro + tenants~~ feito: `.github/workflows/coleta.yml` 2x/dia, fontes
+   em `scripts/coleta/fontes.json` (hoje 6: Superbid, Sodré, De Paula, Arremata Bem, Tesouro Leilões, Magalhães).
+   **Pendente:** cadastrar o secret `SUPABASE_SERVICE_ROLE_KEY` no GitHub e disparar a primeira execução.
+3. Ampliar `fontes.json` para ~20 tenants Suporte Leilões/Leilotech; parser da versão nova do Suporte Leilões e do
+   Grupo Lance; depois sitemaps (Zukerman, Mega, Leilões Judiciais).
 4. Descoberta de tenants a partir das listas de leiloeiros das Juntas Comerciais.
+5. Quando a coleta passar de ~1 h ou precisar rodar de hora em hora: paralelizar em jobs por plataforma ou mover
+   para VPS/Edge Function com `pg_cron` — `rodar-tudo.mjs` e `gravar.mjs` não mudam, só o agendador.

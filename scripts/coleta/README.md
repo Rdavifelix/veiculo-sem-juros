@@ -22,4 +22,25 @@ Regras que todos os coletores seguem (`lib.mjs`):
 - Só páginas públicas; nada de login, nada de lance. `robots.txt` dos sites verificado em 26/10/2026.
 - Guardamos o bruto em `raw` para reprocessar sem recoletar.
 
-`sodresantoro` precisa de `playwright` (`npm i -D playwright && npx playwright install chromium`); os demais não.
+`sodresantoro` usa `playwright` (devDependency; rode `npx playwright install chromium` uma vez, ou aponte
+`PLAYWRIGHT_CHROMIUM_PATH` para um Chromium existente); os demais não precisam de navegador.
+
+## Job agendado (GitHub Actions)
+
+`.github/workflows/coleta.yml` roda `rodar-tudo.mjs` às 05h e 13h (Brasília) e também à mão em Actions.
+Ele percorre `fontes.json` (para adicionar um leiloeiro de plataforma white-label, inclua a base lá), coleta
+cada fonte e grava no Supabase com a chave de serviço (`gravar.mjs`):
+
+- upsert por `(fonte, external_id)`; lotes da fonte que não vieram na coleta → `status = 'removido'`
+  (uma coleta vazia não remove nada, pode ser falha do site);
+- lotes com `encerra_em` no passado → `status = 'encerrado'`;
+- erro de uma fonte vai para `fontes.ultimo_erro` e não derruba as outras; o job termina com código 1.
+
+```bash
+# ensaio local, sem gravar (coleta real, 5 lotes por fonte)
+node scripts/coleta/rodar-tudo.mjs --sem-gravar --limite=5
+# gravando (só em máquina de confiança; a chave de serviço ignora RLS)
+SUPABASE_URL=https://bjrjngzckbezajjrkfwb.supabase.co SUPABASE_SERVICE_ROLE_KEY=... node scripts/coleta/rodar-tudo.mjs --so=superbid
+```
+
+Segredo exigido no repositório: `SUPABASE_SERVICE_ROLE_KEY` (Settings → Secrets and variables → Actions).

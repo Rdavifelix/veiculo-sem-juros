@@ -10,7 +10,8 @@ const BASE = "https://www.sodresantoro.com.br";
 
 export async function coletar({ limite = 96, log = () => {} }) {
   const { chromium } = createRequire(import.meta.url)("playwright");
-  const browser = await chromium.launch();
+  // PLAYWRIGHT_CHROMIUM_PATH: usar um Chromium já instalado (ambientes sem `npx playwright install`).
+  const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined });
   try {
     const ctx = await browser.newContext({
       locale: "pt-BR",

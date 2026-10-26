@@ -44,6 +44,11 @@ deploy com o `crmxpn` (CRM XPN). Nada daquele repositório vale aqui, exceto as 
 - Verificação antes de push: `npm run typecheck && npm run lint && npm run build`.
 - Commits em português, pequenos, descrevendo o porquê.
 
+- 26/10/2026: **job de coleta** em GitHub Actions (`.github/workflows/coleta.yml`, 05h e 13h BRT) rodando
+  `scripts/coleta/rodar-tudo.mjs` → `gravar.mjs` (upsert, removidos, encerrados) sobre `fontes.json` (6 fontes).
+  Testado localmente com `--sem-gravar`. **Falta o dono cadastrar o secret `SUPABASE_SERVICE_ROLE_KEY`** no
+  repositório para a primeira execução gravar.
+
 ## Front end
 - Paleta em `app/globals.css` (`--amarelo`, `--azul`, `--verde`, `--laranja`, `--fundo`). Sem dark mode por ora.
 - `LeilaoVitrine` (lib/leiloes/tipos.ts) **não tem `fonte_url`**: o link do leiloeiro só sai via desbloqueio.
