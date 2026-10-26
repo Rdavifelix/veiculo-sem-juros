@@ -8,7 +8,19 @@ import { capitalizarTitulo, formatarDataHora, formatarMilhar, formatarReais, par
  * `logado` + `desbloqueado` decidem o botão: visitante → login; logado → confirmação de 1 crédito;
  * já desbloqueado → vai direto ao leiloeiro (grátis).
  */
-export function CardLeilao({ leilao: l, logado = false, desbloqueado = false }: { leilao: LeilaoVitrine; logado?: boolean; desbloqueado?: boolean }) {
+export function CardLeilao({
+  leilao: l,
+  logado = false,
+  desbloqueado = false,
+  legenda,
+}: {
+  leilao: LeilaoVitrine;
+  logado?: boolean;
+  /** Já desbloqueado: coração preenchido e botão "Ver leilão" (abrir de novo é grátis). */
+  desbloqueado?: boolean;
+  /** Linha pequena acima do título, ex.: "Desbloqueado em 25/10 às 23:55". */
+  legenda?: string;
+}) {
   const enc = rotuloEncerramento(l.encerra_em);
   const foto = l.fotos[0];
   const titulo = capitalizarTitulo(l.titulo);
@@ -22,6 +34,13 @@ export function CardLeilao({ leilao: l, logado = false, desbloqueado = false }: 
           <Image src={foto} alt={titulo} fill sizes="(min-width:1024px) 280px, (min-width:640px) 45vw, 90vw" className="object-cover" unoptimized />
         ) : (
           <div className="grid h-full place-items-center text-sm text-neutral-400">Imagem não disponível</div>
+        )}
+        {desbloqueado && (
+          <span className="absolute left-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-white shadow-sm" title="Leilão desbloqueado" aria-label="Leilão desbloqueado">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#e53935" stroke="#e53935" strokeWidth="1.5" aria-hidden>
+              <path d="M12 21s-7.5-4.6-9.5-9.3C1 7.9 3.6 4.5 7 4.5c2 0 3.4 1.1 5 3 1.6-1.9 3-3 5-3 3.4 0 6 3.4 4.5 7.2C19.5 16.4 12 21 12 21z" />
+            </svg>
+          </span>
         )}
         <span
           className={`absolute right-2 top-2 rounded-sm px-2 py-0.5 text-xs font-semibold shadow-sm ${
@@ -43,6 +62,7 @@ export function CardLeilao({ leilao: l, logado = false, desbloqueado = false }: 
       </div>
 
       <div className="flex flex-1 flex-col px-4 pb-4 pt-3">
+        {legenda && <p className="mb-1 text-xs text-neutral-500">{legenda}</p>}
         <h3 className="line-clamp-2 min-h-[2.6em] text-[15px] leading-snug text-neutral-800">{titulo}</h3>
         <p className="mt-1 text-sm">
           <span className="font-bold text-neutral-800">{l.leiloeiro}</span>
