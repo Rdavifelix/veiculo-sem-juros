@@ -1,18 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #0b1220;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0b1220;
-    --foreground: #f3f4f6;
-  }
+  /* Paleta na linha do site de referência: cabeçalho amarelo, ações em azul, preço/entrega em verde. */
+  --amarelo: #ffe600;
+  --azul: #3483fa;
+  --verde: #00a650;
+  --laranja: #f5a623;
+  --fundo: #ebebeb;
+  --texto: #333333;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--fundo);
+  color: var(--texto);
 }

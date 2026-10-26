@@ -9,7 +9,8 @@ export const metadata: Metadata = {
     default: "Veículo Sem Juros",
     template: "%s | Veículo Sem Juros",
   },
-  description: "Leilão de veículos — Veículo Sem Juros.",
+  description:
+    "Buscador de leilões de veículos judiciais e extrajudiciais com parcelamento em até 30x.",
 };
 
 export default function RootLayout({
