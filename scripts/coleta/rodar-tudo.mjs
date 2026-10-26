@@ -21,14 +21,16 @@ const config = JSON.parse(await readFile(new URL("./fontes.json", import.meta.ur
 const sb = semGravar ? null : clienteServico();
 const inicio = Date.now();
 const resumo = [];
-let houveErro = false;
+// Falha de COLETA de uma fonte (site fora, WAF) é esperada de vez em quando: fica em fontes.ultimo_erro e no
+// resumo. O job só falha (código 1) se uma GRAVAÇÃO falhar ou se nenhuma fonte tiver coletado nada.
+let erroGravacao = false;
 
 for (const item of config.fontes) {
   if (args.so && args.so !== item.fonte) continue;
   const coletor = COLETORES[item.fonte];
   if (!coletor) {
     console.error(`fonte desconhecida em fontes.json: ${item.fonte}`);
-    houveErro = true;
+    erroGravacao = true;
     continue;
   }
   const bases = item.bases ?? [null];
@@ -42,7 +44,6 @@ for (const item of config.fontes) {
       leiloes = await coletor.coletar({ base: base?.replace(/\/$/, ""), limite: limiteGlobal ?? item.limite ?? 500, log });
     } catch (e) {
       erro = e.message;
-      houveErro = true;
       log(`FALHOU: ${erro}`);
     }
     let gravacao = { gravados: 0, removidos: 0 };
@@ -50,7 +51,7 @@ for (const item of config.fontes) {
       try {
         gravacao = await gravarFonte(sb, fonteId, leiloes, { plataforma: item.fonte, base_url: base, erro });
       } catch (e) {
-        houveErro = true;
+        erroGravacao = true;
         log(`GRAVAÇÃO FALHOU: ${e.message}`);
         erro = (erro ? erro + " | " : "") + e.message;
       }
@@ -64,11 +65,20 @@ if (sb) {
   try {
     encerrados = await encerrarVencidos(sb);
   } catch (e) {
-    houveErro = true;
+    erroGravacao = true;
     console.error(`encerrar vencidos FALHOU: ${e.message}`);
   }
 }
 
+const nenhumaColetou = resumo.length > 0 && resumo.every((r) => r.coletados === 0);
+const fontesComErro = resumo.filter((r) => r.erro).map((r) => r.fonte);
 console.table(resumo);
-console.log(JSON.stringify({ encerrados, total_segundos: Math.round((Date.now() - inicio) / 1000), erro: houveErro }));
-process.exit(houveErro ? 1 : 0);
+console.log(
+  JSON.stringify({
+    encerrados,
+    total_segundos: Math.round((Date.now() - inicio) / 1000),
+    fontes_com_erro: fontesComErro,
+    falha: erroGravacao || nenhumaColetou,
+  }),
+);
+process.exit(erroGravacao || nenhumaColetou ? 1 : 0);

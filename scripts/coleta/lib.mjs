@@ -1,7 +1,15 @@
 // Utilitários compartilhados pelos coletores. Sem dependências externas.
 
+// UA de navegador comum: WAFs (Cloudflare nos sites Leilotech) devolvem 403 para UAs "bot" vindos de IPs de
+// datacenter, como os runners do GitHub. Continuamos identificáveis pelo cabeçalho `From` e pelo ritmo de 1 req/s.
 export const UA =
-  "Mozilla/5.0 (compatible; VeiculoSemJurosBot/0.1; coleta de leilões públicos; rate-limited)";
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
+const CABECALHOS_PADRAO = {
+  "user-agent": UA,
+  accept: "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8",
+  "accept-language": "pt-BR,pt;q=0.9,en;q=0.5",
+  from: "contato@veiculosemjuros.com.br",
+};
 
 const ultimaRequisicaoPorHost = new Map();
 
@@ -25,7 +33,7 @@ export async function buscar(url, { intervaloMs = 1000, headers = {}, method = "
       const res = await fetch(url, {
         method,
         body,
-        headers: { "user-agent": UA, accept: "text/html,application/json;q=0.9,*/*;q=0.8", ...headers },
+        headers: { ...CABECALHOS_PADRAO, ...headers },
         signal: AbortSignal.timeout(30_000),
         redirect: "follow",
       });

@@ -34,7 +34,9 @@ cada fonte e grava no Supabase com a chave de serviço (`gravar.mjs`):
 - upsert por `(fonte, external_id)`; lotes da fonte que não vieram na coleta → `status = 'removido'`
   (uma coleta vazia não remove nada, pode ser falha do site);
 - lotes com `encerra_em` no passado → `status = 'encerrado'`;
-- erro de uma fonte vai para `fontes.ultimo_erro` e não derruba as outras; o job termina com código 1.
+- erro de coleta de uma fonte (site fora, WAF) vai para `fontes.ultimo_erro` e aparece no resumo, sem derrubar
+  as outras; o job só falha (código 1) se uma gravação falhar ou se nenhuma fonte coletar nada.
+- duplicatas dentro da mesma coleta (a API do Superbid repete ofertas entre páginas) são removidas antes do upsert.
 
 ```bash
 # ensaio local, sem gravar (coleta real, 5 lotes por fonte)

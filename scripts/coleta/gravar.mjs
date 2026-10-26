@@ -25,7 +25,10 @@ export async function gravarFonte(sb, fonteId, leiloes, meta) {
   if (eFonte) throw new Error(`fontes: ${eFonte.message}`);
   if (!leiloes.length) return { gravados: 0, removidos: 0 };
 
-  const linhas = leiloes.map((l) => ({
+  // APIs paginadas sem ordenação estável (Superbid) repetem ofertas entre páginas; o upsert não aceita
+  // a mesma chave duas vezes no mesmo comando. Fica a última ocorrência.
+  const unicos = [...new Map(leiloes.map((l) => [String(l.external_id), l])).values()];
+  const linhas = unicos.map((l) => ({
     fonte: fonteId,
     external_id: String(l.external_id),
     fonte_url: l.fonte_url,

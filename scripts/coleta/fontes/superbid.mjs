@@ -15,6 +15,7 @@ const HEADERS = { origin: "https://www.superbid.net", referer: "https://www.supe
 
 export async function coletar({ limite = 100, tipos = [10, 11], log = () => {} }) {
   const resultado = [];
+  const vistos = new Set(); // a paginação não tem ordenação estável e repete ofertas entre páginas
   const agora = Date.now();
   for (const tipo of tipos) {
     const porPagina = 50;
@@ -32,6 +33,8 @@ export async function coletar({ limite = 100, tipos = [10, 11], log = () => {} }
       log(`tipo ${tipo} página ${pagina}: ${ofertas.length} ofertas, ${ativas.length} com encerramento futuro (índice: ${dados.total})`);
       for (const o of ativas) {
         if (resultado.length >= limite) break;
+        if (vistos.has(o.id)) continue;
+        vistos.add(o.id);
         resultado.push(mapear(o));
       }
       if (ofertas.length < porPagina) break;
