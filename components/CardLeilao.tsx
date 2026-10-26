@@ -64,11 +64,23 @@ export function CardLeilao({
       <div className="flex flex-1 flex-col px-4 pb-4 pt-3">
         {legenda && <p className="mb-1 text-xs text-neutral-500">{legenda}</p>}
         <h3 className="line-clamp-2 min-h-[2.6em] text-[15px] leading-snug text-neutral-800">{titulo}</h3>
-        <p className="mt-1 text-sm">
-          <span className="font-bold text-neutral-800">{l.leiloeiro}</span>
-          {l.plataforma && <span className="text-neutral-500"> por {l.plataforma}</span>}
-          {l.comitente && <span className="text-neutral-500"> · vende {l.comitente}</span>}
-        </p>
+        {desbloqueado ? (
+          <p className="mt-1 text-sm">
+            <span className="font-bold text-neutral-800">{l.leiloeiro}</span>
+            {l.plataforma && <span className="text-neutral-500"> por {l.plataforma}</span>}
+            {l.comitente && <span className="text-neutral-500"> · vende {l.comitente}</span>}
+          </p>
+        ) : (
+          // O leiloeiro é o que o crédito compra: só aparece depois do desbloqueio.
+          <p className="mt-1 flex items-center gap-1.5 text-sm text-neutral-500">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+              <rect x="4" y="10" width="16" height="11" rx="2" />
+              <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+            </svg>
+            <span className="font-semibold tracking-wider text-neutral-400">LEILOEIRO OCULTO</span>
+            {l.comitente && <span> · vende {l.comitente}</span>}
+          </p>
+        )}
         <p className="mt-1 text-xs text-neutral-500">
           {l.ano && <span>{l.ano}</span>}
           {l.ano && local && <span> | </span>}

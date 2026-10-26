@@ -46,10 +46,9 @@ export default async function Acessar({ params, searchParams }: { params: Promis
           <div className="mt-4 rounded-sm bg-neutral-50 p-3 text-sm">
             <p className="font-semibold">{leilao.titulo}</p>
             <p className="text-neutral-600">
-              {leilao.leiloeiro}
-              {leilao.cidade && ` · ${leilao.cidade}/${leilao.uf ?? ""}`}
-              {leilao.valor != null && ` · ${formatarReais(leilao.valor)}`}
+              {[leilao.cidade && `${leilao.cidade}/${leilao.uf ?? ""}`, leilao.valor != null && formatarReais(leilao.valor)].filter(Boolean).join(" · ")}
             </p>
+            <p className="mt-1 text-xs text-neutral-500">O nome do leiloeiro e o link do lote aparecem depois da confirmação.</p>
           </div>
           <p className="mt-4 text-sm text-neutral-600">
             Saldo atual: <strong>{cart.saldo}</strong> → depois: <strong>{Math.max(0, cart.saldo - 1)}</strong>
