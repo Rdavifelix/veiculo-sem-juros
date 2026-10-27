@@ -93,6 +93,16 @@ deploy com o `crmxpn` (CRM XPN). Nada daquele repositório vale aqui, exceto as 
   grava cookie `vsj_onb=<uid>` se concluído, senão redireciona para `/onboarding?next=`. Página `/onboarding` (YouTube/
   Vimeo/.mp4 via `embedDe`), `?preview=1` para o admin. Aba **Onboarding** no `/admin` e "Reiniciar onboarding" por usuário.
 
+- 27/10/2026: **funil `/conversa`** (clone, com marca e copy próprias, do chat Typebot do site modelo — `chat.mundoleilao.com/buscaaii`,
+  mapeado via API: 11 blocos, 1 ramificação por objetivo, fim em link de pagamento). Página pública, mobile-first, estilo
+  WhatsApp: fundo com rabiscos (`public/conversa/fundo.svg`, próprio), avatar "Atendimento" (`avatar.svg`), bolhas do atendimento
+  `#1e293b`, resposta `#114d34`, botões `#21c063`, "digitando…" a ~300 car./s (0,6–1,5 s). Motor em `app/conversa/Chat.tsx`
+  (um bloco por vez, botões de escolha, lembra o progresso em `localStorage`, redireciona no fim); roteiro em
+  `lib/conversa/fluxo.ts` (variáveis `{objetivo}`, total de lotes, maior desconto, preço); "imagens" do funil são cartões HTML
+  (`Cartoes.tsx`: mock do app, § 1º do art. 895 do CPC, 3 lotes reais parceláveis, comparativo, preço). Destino do botão de compra:
+  `NEXT_PUBLIC_CHECKOUT_URL` → `NEXT_PUBLIC_WHATSAPP` → `/login`; preço em `NEXT_PUBLIC_PRECO_ACESSO` (padrão "R$ 47,00").
+  `noindex`. Proxy agora ignora a sessão quando não há env do Supabase (dev só com a semente) e `agentRules: false` no Next.
+
 ## Front end
 - Paleta em `app/globals.css` (`--amarelo`, `--azul`, `--verde`, `--laranja`, `--fundo`). Sem dark mode por ora.
 - `LeilaoVitrine` (lib/leiloes/tipos.ts) **não tem `fonte_url`**: o link do leiloeiro só sai via desbloqueio.

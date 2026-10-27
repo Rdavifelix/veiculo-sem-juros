@@ -8,6 +8,7 @@ function livreDeOnboarding(pathname: string) {
   return (
     pathname === "/" ||
     pathname === "/onboarding" ||
+    pathname === "/conversa" ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/termos") ||
     pathname.startsWith("/politica") ||
@@ -23,6 +24,8 @@ function livreDeOnboarding(pathname: string) {
  */
 export async function atualizarSessao(request: NextRequest) {
   let resposta = NextResponse.next({ request });
+  // Sem projeto Supabase configurado (ex.: ambiente de desenvolvimento só com a semente), não há sessão a renovar.
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return resposta;
 
   const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     cookies: {
