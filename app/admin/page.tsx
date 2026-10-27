@@ -8,7 +8,8 @@ import { listarAnalisesAdmin, listarFontes, listarUsuarios, resumoAdmin } from "
 import { usuarioAtual } from "@/lib/auth";
 import { carteira } from "@/lib/creditos";
 import { formatarDataHora, formatarMilhar } from "@/lib/formatar";
-import { concederCreditos, criarUsuario, definirAdmin, definirPlano } from "./actions";
+import { concederCreditos, criarUsuario, definirAdmin, definirOnboarding, definirPlano, reiniciarOnboarding } from "./actions";
+import { embedDe, onboardingAdmin } from "@/lib/onboarding";
 
 export const metadata: Metadata = { title: "Administração", robots: { index: false } };
 export const maxDuration = 300;
@@ -18,6 +19,7 @@ const ABAS = [
   ["usuarios", "Usuários"],
   ["analises", "Análises"],
   ["fontes", "Fontes de coleta"],
+  ["onboarding", "Onboarding"],
 ] as const;
 
 export default async function Admin({ searchParams }: { searchParams: Promise<{ aba?: string; msg?: string }> }) {
@@ -27,11 +29,12 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
   if (!cart.admin) redirect("/busca");
   const { aba = "visao", msg } = await searchParams;
 
-  const [resumo, usuarios, analises, fontes] = await Promise.all([
+  const [resumo, usuarios, analises, fontes, onboarding] = await Promise.all([
     resumoAdmin(),
     aba === "usuarios" ? listarUsuarios() : Promise.resolve([]),
     aba === "analises" ? listarAnalisesAdmin() : Promise.resolve([]),
     aba === "fontes" ? listarFontes() : Promise.resolve([]),
+    aba === "onboarding" ? onboardingAdmin() : Promise.resolve(null),
   ]);
 
   const campo = "h-9 rounded-sm border border-neutral-300 px-2 text-sm";
@@ -139,6 +142,10 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                             <button className="text-xs font-semibold text-[var(--azul)]">{u.is_admin ? "Remover admin" : "Tornar admin"}</button>
                           </form>
                         )}
+                        <form action={reiniciarOnboarding} className="mt-1">
+                          <input type="hidden" name="user_id" value={u.id} />
+                          <button className="text-xs font-semibold text-neutral-500 hover:text-[var(--azul)]" title="O usuário verá o vídeo de boas-vindas de novo">Reiniciar onboarding</button>
+                        </form>
                       </td>
                     </tr>
                   ))}
@@ -181,6 +188,60 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                 {!analises.length && <tr><td colSpan={6} className="px-3 py-6 text-center text-neutral-500">Nenhuma análise pedida ainda.</td></tr>}
               </tbody>
             </table>
+          </section>
+        )}
+
+        {aba === "onboarding" && onboarding && (
+          <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
+            <form action={definirOnboarding} className="space-y-4 rounded-md bg-white p-5 shadow-sm">
+              <div>
+                <h2 className="text-base font-semibold">Vídeo e palavras-chave do primeiro acesso</h2>
+                <p className="mt-1 text-sm text-neutral-600">
+                  Todo usuário novo vê esta tela uma vez: assiste ao vídeo e digita as duas palavras-chave para liberar a plataforma. Cole o link do YouTube, Vimeo ou de um arquivo .mp4.
+                </p>
+              </div>
+              <label className="block text-sm">
+                <span className="text-xs font-semibold text-neutral-600">Link do vídeo</span>
+                <input name="video_url" defaultValue={onboarding.video_url} placeholder="https://www.youtube.com/watch?v=…" className={`${campo} mt-1 w-full`} />
+              </label>
+              <label className="block text-sm">
+                <span className="text-xs font-semibold text-neutral-600">Título</span>
+                <input name="titulo" defaultValue={onboarding.titulo} className={`${campo} mt-1 w-full`} />
+              </label>
+              <label className="block text-sm">
+                <span className="text-xs font-semibold text-neutral-600">Texto de apoio</span>
+                <textarea name="texto" defaultValue={onboarding.texto} rows={3} className="mt-1 w-full rounded-sm border border-neutral-300 px-2 py-1.5 text-sm" />
+              </label>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block text-sm">
+                  <span className="text-xs font-semibold text-neutral-600">1ª palavra-chave</span>
+                  <input name="palavra1" defaultValue={onboarding.palavras[0]} required className={`${campo} mt-1 w-full`} />
+                </label>
+                <label className="block text-sm">
+                  <span className="text-xs font-semibold text-neutral-600">2ª palavra-chave</span>
+                  <input name="palavra2" defaultValue={onboarding.palavras[1]} required className={`${campo} mt-1 w-full`} />
+                </label>
+              </div>
+              <p className="text-xs text-neutral-500">A conferência ignora ordem, maiúsculas e acentos. As palavras ficam só no banco: nunca vão para o navegador do usuário.</p>
+              <div className="flex flex-wrap items-center gap-3">
+                <button className={botao}>Salvar onboarding</button>
+                <Link href="/onboarding?preview=1" className="text-sm font-semibold text-[var(--azul)]">Ver como o usuário vê ↗</Link>
+              </div>
+            </form>
+            <div className="rounded-md bg-white p-5 shadow-sm">
+              <h2 className="text-base font-semibold">Prévia do vídeo</h2>
+              <div className="relative mt-3 aspect-video overflow-hidden rounded-sm bg-neutral-900">
+                {(() => {
+                  const v = embedDe(onboarding.video_url);
+                  if (v.tipo === "iframe") return <iframe src={v.src} title="Prévia" className="absolute inset-0 h-full w-full" allowFullScreen />;
+                  if (v.tipo === "video") return <video src={v.src} controls className="absolute inset-0 h-full w-full" />;
+                  return <div className="absolute inset-0 grid place-items-center p-4 text-center text-xs text-neutral-300">Sem vídeo configurado</div>;
+                })()}
+              </div>
+              <p className="mt-3 text-xs text-neutral-500">
+                Para obrigar quem já concluiu a ver um vídeo novo, use “Reiniciar onboarding” na aba Usuários.
+              </p>
+            </div>
           </section>
         )}
 

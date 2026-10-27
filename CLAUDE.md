@@ -85,6 +85,14 @@ deploy com o `crmxpn` (CRM XPN). Nada daquele repositório vale aqui, exceto as 
   (`lib/participacoes.ts`). `/agenda` (Premium/admin): calendário mensal (`?m=AAAA-MM`) com os encerramentos marcados,
   lista dos próximos com teto, link "Google Agenda" e Remover. Link "Agenda" no cabeçalho.
 
+- 27/10/2026: **gate de onboarding** (modelo: vídeo + 2 palavras-chave → "Começar a usar a plataforma"). Tabela
+  `configuracoes` (chave `onboarding`: titulo, texto, video_url, palavras) sem policies, só RPCs security definer
+  (migração 000600): `onboarding_publico()` (sem as palavras), `concluir_onboarding(p1,p2)` (confere sem acento/ordem e
+  grava `profiles.onboarding_done_at`), `admin_onboarding()`, `admin_definir_onboarding(jsonb)`, `admin_reiniciar_onboarding(uid)`.
+  Gate em `lib/supabase/proxy.ts`: logado + GET fora de `/`, `/login*`, `/onboarding`, termos → consulta o perfil uma vez,
+  grava cookie `vsj_onb=<uid>` se concluído, senão redireciona para `/onboarding?next=`. Página `/onboarding` (YouTube/
+  Vimeo/.mp4 via `embedDe`), `?preview=1` para o admin. Aba **Onboarding** no `/admin` e "Reiniciar onboarding" por usuário.
+
 ## Front end
 - Paleta em `app/globals.css` (`--amarelo`, `--azul`, `--verde`, `--laranja`, `--fundo`). Sem dark mode por ora.
 - `LeilaoVitrine` (lib/leiloes/tipos.ts) **não tem `fonte_url`**: o link do leiloeiro só sai via desbloqueio.

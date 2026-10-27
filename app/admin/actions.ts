@@ -73,3 +73,26 @@ export async function criarUsuario(form: FormData) {
   await admin.auth.resetPasswordForEmail(email, { redirectTo: `${base}/login/nova-senha` });
   voltar("usuarios", `Conta criada para ${email}. Enviamos o e-mail para definir a senha.`);
 }
+
+/** Onboarding: vídeo, textos e as duas palavras-chave que liberam a plataforma. */
+export async function definirOnboarding(form: FormData) {
+  await exigirAdmin();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_definir_onboarding", {
+    p_valor: {
+      titulo: String(form.get("titulo") ?? "").trim(),
+      texto: String(form.get("texto") ?? "").trim(),
+      video_url: String(form.get("video_url") ?? "").trim(),
+      palavras: [String(form.get("palavra1") ?? "").trim(), String(form.get("palavra2") ?? "").trim()],
+    },
+  });
+  voltar("onboarding", error ? `Erro: ${error.message}` : "Onboarding atualizado. Quem ainda não concluiu já vê a nova versão.");
+}
+
+/** Faz um usuário passar pelo onboarding de novo (ex.: vídeo novo que todos precisam ver). */
+export async function reiniciarOnboarding(form: FormData) {
+  await exigirAdmin();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_reiniciar_onboarding", { p_user: String(form.get("user_id")) });
+  voltar("usuarios", error ? `Erro: ${error.message}` : "Onboarding reiniciado: na próxima página o usuário verá o vídeo de novo.");
+}

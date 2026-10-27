@@ -18,6 +18,9 @@ export async function entrar(_estado: { erro?: string } | undefined, form: FormD
   if (error) {
     return { erro: error.message.includes("Invalid login") ? "E-mail ou senha incorretos." : "Não foi possível entrar agora. Tente de novo." };
   }
+  // Gate de onboarding na 1ª entrada (o proxy também aplica, mas decidir aqui mantém a URL certa no navegador).
+  const { data: perfil } = await supabase.from("profiles").select("onboarding_done_at").maybeSingle();
+  if (!perfil?.onboarding_done_at) redirect(`/onboarding?next=${encodeURIComponent(next)}`);
   redirect(next);
 }
 
